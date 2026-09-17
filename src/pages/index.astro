@@ -1,0 +1,33 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const posts = allPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+<BaseLayout
+  title="ガジェット比較ラボ"
+  description="AIツール・スマート家電・便利ガジェットを比較レビューするブログです。"
+>
+  <h1>ガジェット比較ラボ</h1>
+  <p>AIツールやスマート家電、便利グッズをスペック比較・レビューで紹介します。</p>
+  <ul class="post-list">
+    {posts.map((post) => (
+      <li>
+        <a href={`/posts/${post.slug}/`}>{post.data.title}</a>
+        <p class="excerpt">{post.data.description}</p>
+        <time datetime={post.data.pubDate.toISOString()}>
+          {post.data.pubDate.toLocaleDateString('ja-JP')}
+        </time>
+      </li>
+    ))}
+  </ul>
+  {posts.length === 0 && <p>準備中です。近日公開予定の記事にご期待ください。</p>}
+</BaseLayout>
+<style>
+  .post-list { list-style: none; padding: 0; }
+  .post-list li { margin-bottom: 1.75rem; padding-bottom: 1.75rem; border-bottom: 1px solid #8883; }
+  .post-list a { font-size: 1.15rem; font-weight: 700; text-decoration: none; }
+  .excerpt { color: #666; margin: 0.4rem 0; }
+  time { font-size: 0.85rem; color: #888; }
+</style>

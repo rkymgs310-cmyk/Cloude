@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdSlot from '../../components/AdSlot.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+---
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article>
+    <h1>{post.data.title}</h1>
+    <p class="meta">
+      <time datetime={post.data.pubDate.toISOString()}>
+        {post.data.pubDate.toLocaleDateString('ja-JP')}
+      </time>
+      {post.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
+    </p>
+    <AdSlot />
+    <div class="content">
+      <Content />
+    </div>
+    <AdSlot />
+    <p class="disclosure">
+      本記事はアフィリエイトプログラムにより収益を得る場合があります。
+    </p>
+  </article>
+</BaseLayout>
+<style>
+  .meta { color: #888; font-size: 0.9rem; }
+  .tag { margin-left: 0.5rem; }
+  .content :global(h2) { margin-top: 2rem; }
+  .content :global(table) { width: 100%; border-collapse: collapse; }
+  .content :global(th), .content :global(td) {
+    border: 1px solid #8883; padding: 0.5rem; text-align: left;
+  }
+  .disclosure { font-size: 0.8rem; color: #999; margin-top: 2rem; }
+</style>

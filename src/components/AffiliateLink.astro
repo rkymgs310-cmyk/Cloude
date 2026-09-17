@@ -1,0 +1,27 @@
+---
+// アフィリエイトリンク用。href が未設定(=商品未選定/申請前)の場合は
+// 通常のテキストとして表示し、リンク切れ・空リンクの公開を防ぐ。
+interface Props {
+  href?: string;
+  label: string;
+}
+const { href, label } = Astro.props;
+---
+{href ? (
+  <a class="affiliate-link" href={href} rel="nofollow sponsored noopener" target="_blank">
+    {label}
+  </a>
+) : (
+  <span class="affiliate-link affiliate-link--pending">{label}（リンク準備中）</span>
+)}
+<style>
+  .affiliate-link {
+    display: inline-block;
+    font-weight: 700;
+    padding: 0.15rem 0;
+  }
+  .affiliate-link--pending {
+    color: #888;
+    text-decoration: line-through;
+  }
+</style>
