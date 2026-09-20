@@ -7,12 +7,17 @@ export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => !data.draft);
   return posts.map((post) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: { post, allPosts: posts },
   }));
 }
 
-const { post } = Astro.props;
+const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
+
+const relatedPosts = allPosts
+  .filter((p) => p.slug !== post.slug && p.data.tags.some((tag) => post.data.tags.includes(tag)))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
 ---
 <BaseLayout title={post.data.title} description={post.data.description}>
   <article>
@@ -28,6 +33,16 @@ const { Content } = await post.render();
       <Content />
     </div>
     <AdSlot />
+    {relatedPosts.length > 0 && (
+      <nav class="related" aria-label="関連記事">
+        <h2>関連記事</h2>
+        <ul>
+          {relatedPosts.map((p) => (
+            <li><a href={`/posts/${p.slug}/`}>{p.data.title}</a></li>
+          ))}
+        </ul>
+      </nav>
+    )}
     <p class="disclosure">
       本記事はアフィリエイトプログラムにより収益を得る場合があります。
     </p>
@@ -42,4 +57,8 @@ const { Content } = await post.render();
     border: 1px solid #8883; padding: 0.5rem; text-align: left;
   }
   .disclosure { font-size: 0.8rem; color: #999; margin-top: 2rem; }
+  .related { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #8883; }
+  .related h2 { font-size: 1.1rem; }
+  .related ul { padding-left: 1.25rem; }
+  .related li { margin-bottom: 0.4rem; }
 </style>

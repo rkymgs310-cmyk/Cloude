@@ -25,12 +25,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check required secret
+        id: preflight
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            {
+              echo "### ⚠️ Human Gate: ANTHROPIC_API_KEY が未設定です"
+              echo ""
+              echo "記事の自動生成をスキップしました。以下の手順でSecretを登録してください。"
+              echo ""
+              echo "1. https://console.anthropic.com でAPIキーを発行(要支払い方法登録)"
+              echo "2. このリポジトリの Settings → Secrets and variables → Actions で"
+              echo '   `ANTHROPIC_API_KEY` という名前のSecretを追加'
+              echo '3. Actions タブから "Generate daily post" を Run workflow で手動実行して確認'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate post
+        if: steps.preflight.outputs.skip != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: npm run generate:post
 
       - name: Commit and push if there are changes
+        if: steps.preflight.outputs.skip != 'true'
         run: |
           git config user.name "gadget-lab-bot"
           git config user.email "actions@users.noreply.github.com"
