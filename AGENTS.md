@@ -1,7 +1,7 @@
 # AGENTS.md — AI Coding Agents 共通運用規約 (Shared Operating Standard)
 
 このリポジトリ (`rkymgs310-cmyk/Cloude`) において作業するすべての AI コーディングエージェント
-（ChatGPT, Claude Code, Gemini / Antigravity, その他）および開発者が遵守すべき恒久的な共通運用ルールです。
+（ChatGPT, Claude Code, Gemini / Antigravity, Aider, その他）および開発者が遵守すべき恒久的な共通運用ルールです。
 
 ## 1. 3大ドキュメントの役割分担 (Document Roles)
 
@@ -58,8 +58,8 @@ READ ──> PLAN ──> EXECUTE ──> VERIFY ──> WRITEBACK ──> NEXT
 
 ### 3.1 Git ブランチの完全分離 (Git Branch Isolation)
 - **main/master ブランチへの直接 commit / push は厳禁**。
-- 他のエージェントのブランチ（例: Claude セッション中に `gemini/*` ブランチ、Gemini セッション中に `claude/*` ブランチ）を勝手に上書き・push してはならない。
-- 必ず現在割り当てられている自己のエージェントブランチ（例: `gemini/...`, `claude/...`）でのみ作業・commit を行い、push 先も該当ブランチのみに限定する (`git push origin HEAD:<current-branch>`)。
+- 他のエージェントのブランチ（例: Claude セッション中に `gemini/*` / `aider/*` ブランチ、Aider セッション中に `claude/*` / `gemini/*` ブランチ）を勝手に上書き・push してはならない。
+- 必ず現在割り当てられている自己のエージェントブランチ（例: `gemini/...`, `claude/...`, `aider/...`）でのみ作業・commit を行い、push 先も該当ブランチのみに限定する (`git push origin HEAD:<current-branch>`)。
 
 ### 3.2 Human Gate と安全な自律前進 (Human Gates & Safe Autonomous Continuation)
 - **Human Gate の定義**:

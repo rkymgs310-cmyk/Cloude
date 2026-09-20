@@ -1,15 +1,15 @@
 # AI_CONTEXT.md — この案件を初めて見るAI/人間向けの状態ファイル
 
-このファイルは Riku AI OS の Handoff層です。ChatGPT / Gemini / 他のcoding agent /
+このファイルは Riku AI OS の Handoff層です。ChatGPT / Claude Code / Gemini / Aider / 他のcoding agent /
 人間が、会話履歴やモデル固有Memoryなしにこのリポジトリの現在地を把握できるようにする
-ことが目的です。正本は Google Drive の **Riku OS Master** スプレッドシートですが、
-このセッションではそこへ直接書き込む権限/安全な手段がなかったため、反映用データを
-末尾の「Riku OS Writeback Package」にそのまま貼り付け可能な形で保持しています。
+ことが目的です。正本は Google Drive の **Riku OS Master** スプレッドシートです。
+2026-09-20 の Aider 導入進捗は Riku OS Master の `AI Tool Registry`（AIT-030）へ直接反映済みです。
+末尾の「Riku OS Writeback Package」は、AFF-GADGET案件台帳など追加反映が必要な場合の補助パッケージとして保持します。
 
 - **Project ID**: `AFF-GADGET`
 - **Canonical GitHub Repository**: `rkymgs310-cmyk/Cloude`
-- **Current Branch**: `gemini/riku-ai-os-bootstrap`
-- **Last updated**: 2026-09-20 (Gemini session phase 2: UI/UX modernization, Tag discovery, JSON-LD, RSS, Queue expansion)
+- **Current Branch**: `aider/riku-ai-os-bootstrap`
+- **Last updated**: 2026-09-20 (Aider integration: CLI install, branch guard, shared-context config, test/build wiring)
 
 ## 1. Objective
 
@@ -45,7 +45,7 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 - アフィリエイト(Amazon等): **未契約**。`AffiliateLink` コンポーネントは全て `href` 未設定のプレースホルダ状態
 - 記事: 4本公開済み(`smart-plug-guide`, `power-bank-buying-guide`,
   `ai-image-generation-commercial-use`, `best-ai-note-taking-apps-2026`)
-- リポジトリの作業ブランチは `gemini/riku-ai-os-bootstrap`
+- リポジトリの現在の作業ブランチは `aider/riku-ai-os-bootstrap`
 
 ## 4. Automation
 
@@ -90,11 +90,24 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
   - **キュー自動検証テスト追加**:
     - `tests/generate-post.test.mjs` にキューの構造・キーワード重複・タグ型・スラッグ存在を検証するテストを追加 (計33テスト全件合格)
 
+### 2026-09-20 Aider integration
+
+- Windows native Aider `0.86.2` を公式PowerShellインストーラで導入。専用Python 3.12 / `uv` 環境に分離。
+- Aider専用ブランチ `aider/riku-ai-os-bootstrap` を作成し、他agentのbranchと完全分離。
+- repo-local `.aider.conf.yml` を追加:
+  - `AGENTS.md`, `README.md`, `docs/AI_CONTEXT.md` を常時read-only contextとして読み込む。
+  - Aider既定の自動commit / dirty-file commitを無効化し、共通規約の「検証後commit」に合わせる。
+  - `npm.cmd test && npm.cmd run build` をtest commandとして登録し、編集後の自動検証を有効化。
+  - analyticsを無効化し、repo内へAPI keyを保存しない運用に固定。
+- `scripts/aider.ps1` を追加し、`aider/*` 以外のbranchでは起動を拒否するガードを実装。
+- 実LLM呼び出し用credentialは未設定。OpenAI / Anthropic / Gemini / OpenRouterの環境変数およびGitHub Copilot token fileは検出されず、credential投入のみHuman Gateとして残る。
+
 ## 5. Current blockers
 
 | 種別 | 内容 | 対応者 | 状態 |
 | --- | --- | --- | --- |
 | **Human Gate** | `ANTHROPIC_API_KEY` がGitHub Secretsに未登録。9/17〜9/19の3日連続でcronが失敗(2026-09-20のセッションでpreflight化し、以後は失敗ではなくスキップ扱いに変更) | 人間 (課金・API発行が必要なためAIは代行不可) | **未解消** |
+| **Human Gate / Aider credential** | Aider CLI・repo統合は完了したが、実LLM呼び出しに使うprovider credentialがPC上に未設定 | 人間 (秘密情報の投入/契約確認) | **未解消** |
 | 派生ブロッカー | 上記によりAdSense審査(記事15-20本必要)、独自ドメイン接続、アフィリエイト申請も未着手 | 人間 | 未解消 |
 
 **Human action (変更なし、README記載の手順と同一)**:
@@ -116,6 +129,8 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 ## 7. Important files
 
 - `AGENTS.md` — AI Coding Agents 共通運用規約 (Cross-AI Rules)
+- `.aider.conf.yml` — Aiderの共有context・Git安全設定・test/build連携
+- `scripts/aider.ps1` — `aider/*` branch強制付きAider起動ラッパー
 - `scripts/generate-post.mjs` — 生成ロジック本体(バリデーション・フォールバック含む)
 - `tests/generate-post.test.mjs` — 生成ロジックおよびキュー整合性の単体テストスイート (33テスト)
 - `data/topics.json` — キーワードキュー (32件)
@@ -135,9 +150,12 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 (スマート家電・ガジェット・AIツール・周辺機器カテゴリ)。
 スキーマ: `keyword`, `tags`, 任意で `priority`("high"/"low"、未指定は通常優先度)、生成後は自動付与される `done`, `slug`, `generatedAt`。
 
-## 9. Latest verification (2026-09-20 Gemini session phase 2)
+## 9. Latest verification (2026-09-20 Aider integration)
 
-- `npm.cmd test` → 33件の単体テスト全て合格 (9スイート、0件失敗、実行時間 約310ms)
+- Aider CLI → `aider 0.86.2` 起動確認。
+- `scripts/aider.ps1 --version` → `aider/riku-ai-os-bootstrap` branch guard通過、共有context設定表示、正常終了。
+- `aider --help` → repo-local `.aider.conf.yml` の読み込みを含むCLI起動がエラーなく成功。
+- `npm.cmd test` → 33件の単体テスト全て合格 (9スイート、0件失敗、実行時間 約273ms)
 - `npm.cmd run build` → 成功 (全13ページ静的HTML + RSS 2.0 XML + sitemap 生成、エラーなし)
 - 生成ページ一覧:
   - `/index.html` (トップ・ヒーロー・カード一覧)
@@ -152,12 +170,11 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 ## 10. Next actions
 
 優先度順:
-1. **(Human Gate)** `ANTHROPIC_API_KEY` をGitHub Secretsに登録 → cron再開
-2. **(Human Gate / write権限のあるAI)** 本ファイル末尾のWritebackパッケージを
-   Riku OS Master の Project Registry / Progress Log / Decision Log へ反映
-3. cron再開後、生成される記事にバリデーション/クリーンアップが正しく効いているか
-   2〜3本分は人力レビュー
-4. 記事が15-20本たまった時点でAdSense申請(README手順どおり)
+1. **(Human Gate / Aider)** 実LLM呼び出し用provider credentialを安全な環境変数/OAuth経路で設定し、Codex / Claude Code と同一タスクで初回benchmarkを実施
+2. **(Human Gate / Site)** `ANTHROPIC_API_KEY` をGitHub Secretsに登録 → 記事生成cron再開
+3. cron再開後、生成される記事にバリデーション/クリーンアップが正しく効いているか2〜3本分をレビュー
+4. AFF-GADGET案件台帳への追加writebackが必要なら末尾パッケージを反映。Aider自体は `AI Tool Registry` AIT-030へ反映済み
+5. 記事が15-20本たまった時点でAdSense申請(README手順どおり)
 
 ## 11. Relationship to Riku OS Master
 
@@ -205,18 +222,21 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
     - `data/topics.json` を16件から32件（完了4件、未処理28件）へ倍増
     - `topics.json` のスキーマ・キーワード重複・タグ妥当性をテストスイートで常時自動検証
   - リポジトリ共通運用規約 `AGENTS.md` の遵守
+  - Aider `0.86.2` をWindowsへ導入し、`aider/riku-ai-os-bootstrap`・`.aider.conf.yml`・`scripts/aider.ps1` を追加
+  - Aiderの自動commitを無効化し、共有context常時read・編集後test/build・branch isolationを共通Coding Agent運用へ統合
+  - Riku OS Master `AI Tool Registry` AIT-030 を `INSTALLED / BENCHMARK PENDING` に更新
 - decisions: 下記 DECISION_UPDATE 参照
 - files_changed: `src/layouts/BaseLayout.astro`, `src/pages/index.astro`, `src/pages/posts/[slug].astro`,
   `src/pages/about.astro`, `src/pages/contact.astro`, `src/pages/privacy.astro`,
   `src/pages/tags/index.astro`, `src/pages/tags/[tag].astro`, `src/pages/rss.xml.ts`,
-  `data/topics.json`, `tests/generate-post.test.mjs`, `docs/AI_CONTEXT.md`
-- systems_changed: Astro static site routes (13 pages + RSS 2.0 + sitemap), test suite (33 tests)
-- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定のまま(Human Gateとして継続管理)
-- unresolved_issues: Riku OS Masterへの直接反映(write権限なし)、AdSense/アフィリエイト/ドメイン契約は全て未着手のHuman作業
+  `data/topics.json`, `tests/generate-post.test.mjs`, `AGENTS.md`, `README.md`, `.aider.conf.yml`, `scripts/aider.ps1`, `docs/AI_CONTEXT.md`
+- systems_changed: Astro static site routes (13 pages + RSS 2.0 + sitemap), test suite (33 tests), Aider CLI/shared Coding Agent integration
+- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定。Aider実LLM用provider credentialも未設定(Human Gateとして継続管理)
+- unresolved_issues: Aiderの実LLM benchmark未実施、AdSense/アフィリエイト/ドメイン契約は未着手のHuman作業。Riku OS Master AIT-030へのAider導入writebackは完了
 - next_actions: 上記「10. Next actions」参照
 - blockers: 下記 BLOCKER 参照
 - source_of_truth: このリポジトリ(コード) + Riku OS Master(意思決定・進捗)
-- handoff_notes: デザイン刷新、タグ回遊、JSON-LD構造化データ、RSSフィード、トピックキュー32件、単体テスト33件まで自律前進完了。外部クレデンシャル待ち以外の開発タスクは高水準で完了
+- handoff_notes: デザイン刷新、タグ回遊、JSON-LD構造化データ、RSSフィード、トピックキュー32件、単体テスト33件に加え、Aider 0.86.2の共通Coding Agent統合とRiku OS AIT-030 writebackまで完了。残りはAider実LLM credential設定後のbenchmarkと既存Human Gate
 
 ### DECISION_UPDATE
 
@@ -225,6 +245,7 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 - タグを単なるテキスト表示から `/tags/[tag]/` への個別アーカイブページ付きリンクへ改修。サイト内回遊率（内部リンク）とロングテールSEOキーワードのインデックス力を強化
 - `data/topics.json` を32件へ拡充し、毎日1記事のcronが1ヶ月間無停止で稼働できるバッファを確保。AdSense審査基準（15〜20記事）を完全に満たす準備を整えた
 - `topics.json` の構造・重複キーワードを自動検知するテストスイートを追加し、キュー編集時のヒューマンエラーによる生成停止を予防
+- Aiderは既存Coding Agent群へ無条件で置換導入せず、専用 `aider/*` branch・共有context・検証後commitの共通規約に統合し、実LLM credential設定後にCodex/Claude Codeとの同一タスクbenchmarkで役割を決める
 
 ### BLOCKER
 
@@ -236,3 +257,11 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 - required_action: README.md および本ファイル5節記載の3ステップ
 - blocks: cronによる新規記事生成、記事本数の増加、AdSense申請の前提条件
 - does_not_block: コード改善・単体テスト整備・CI配備・SEO改善・ドキュメント整備・デザイン刷新・タグ機能・RSS配信(すべて本セッションで対応済み)
+
+- id: HG-002
+- type: Human Gate (Aider model credential)
+- description: Aider CLI / repo integrationは完了しているが、実LLM呼び出し用のprovider credentialがPC上に未設定
+- owner: 人間
+- required_action: 使用するproviderのAPI keyまたはOAuth credentialを安全な環境変数/認証経路で設定する。repoには保存しない
+- blocks: Aiderでの実タスク実行、Codex / Claude Codeとの同一タスクbenchmark
+- does_not_block: Aider CLI起動、branch guard、共有context、test/build wiring、Git運用規約、Riku OS writeback

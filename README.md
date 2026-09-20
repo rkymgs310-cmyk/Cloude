@@ -25,6 +25,19 @@ npm run dev       # http://localhost:4321 で確認
 npm run build     # 本番ビルド(dist/に出力)
 ```
 
+### Aider で作業する場合
+
+Aider は専用の `aider/*` ブランチでのみ起動してください。repo-local の `.aider.conf.yml` が
+`AGENTS.md` / `README.md` / `docs/AI_CONTEXT.md` をread-only contextとして常時読み込み、
+Aider側の自動commitを無効化し、編集後に `npm.cmd test && npm.cmd run build` を実行します。
+
+```powershell
+git switch -c aider/<task-name>
+.\scripts\aider.ps1
+```
+
+LLM用のAPIキー/OAuth tokenは環境変数またはAiderの安全な設定経路で与え、リポジトリには保存しません。
+
 記事を1本手動生成したい場合:
 
 ```bash

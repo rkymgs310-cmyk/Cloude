@@ -1,0 +1,14 @@
+read:
+  - AGENTS.md
+  - README.md
+  - docs/AI_CONTEXT.md
+
+git: true
+gitignore: false
+auto-commits: false
+dirty-commits: false
+show-diffs: true
+auto-lint: false
+test-cmd: "npm.cmd test && npm.cmd run build"
+auto-test: true
+analytics-disable: true
