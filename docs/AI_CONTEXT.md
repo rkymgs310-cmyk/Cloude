@@ -190,3 +190,181 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 - blocks: cronによる新規記事生成、記事本数の増加、AdSense申請の前提条件
 - does_not_block: コード改善・generator品質向上・内部リンク・ドキュメント整備
   (すべて本セッションで対応済み)
+
+---
+
+## Claude Review: `origin/gemini/riku-ai-os-bootstrap` (2026-09-20)
+
+**レビュー担当**: Claude (このブランチ `claude/compassionate-cray-fjnmwg` 上でレビュー実施)
+**対象**: `origin/gemini/riku-ai-os-bootstrap`(base: `b36ac69`、3コミット、
+20ファイル / +2434 / -237)
+**方法**: `git worktree` で対象ブランチを分離チェックアウトし、`npm ci` → `npm test` →
+`npm run build` を実機実行。想像や過去ログでの判定は行っていない。
+**マージ判断**: **保留**(ユーザー指示どおり。致命的な問題は検出されなかったが、
+下記の軽微な指摘が未対応)
+
+### 実機検証結果
+
+- `npm test` → **33 tests / 33 pass**(9 suites, 0 fail, 実行時間 約170ms)
+- `npm run build` → **成功**(13ページ + `/rss.xml` + `sitemap-index.xml` を生成、
+  エラー・警告なし)
+- 生成された `/tags/*` ディレクトリ名は生UTF-8(例: `dist/tags/AIツール/`)、
+  `sitemap-index.xml` 側は正しく `%E3%83%84...` 形式でパーセントエンコードされている
+  ことを確認(Astroのsitemap統合が自動処理。Cloudflare Pages/Vercel/Netlify等の
+  主要静的ホストはリクエストパスをデコードしてファイルと突き合わせるため実運用上は
+  問題ない見込みだが、実ホスティング接続後に一度目視確認を推奨)
+
+### 総評
+
+**回帰は検出されなかった。** Claudeが追加したバリデーション(必須フィールド・比較表検出・
+スラッグ重複防止・禁止フレーズ除去・重複段落警告・優先度キュー選択)はGeminiのコミットで
+全て維持され、さらに堅牢化されている(下記参照)。むしろ複数の潜在バグを修正している。
+
+### 1. Generatorの変更に回帰がないか → **回帰なし、複数のバグ修正を確認**
+
+- `slugify()` は元々 `article.slug || article.title || topic.keyword` の順で
+  「最初の非空文字列」を採用していたが、日本語スラッグ/タイトルは非空のまま
+  `slugify()`に通すと**空文字列になる**(a-z0-9以外を全除去するため)。
+  Claude版にはこの潜在バグがあった(日本語タイトルが返るとほぼ確実に踏む経路)。
+  Geminiの `resolveSlug()` は「slugify後に空でない候補」まで順にフォールバックし、
+  全滅時は `post-{index}` にフォールバックする実装に修正済み。**正しい修正。**
+- `extractJson()` にMarkdownコードフェンス(` ```json `)抽出と末尾カンマ自動修復を追加。
+  Claude Haiku/Sonnetの応答が稀にコードフェンス付きで返る場合の実運用上のフェイル
+  セーフとして妥当。
+- `main()` を `export` して `isMain` ガード(`process.argv[1]`比較)を追加し、
+  テストからの `import` 時に本番の `main()` が誤発火しない設計に変更。妥当な設計。
+- `validateArticle()` に tags の正規化(文字列/配列混在への耐性)を追加。
+  Astro Content CollectionsのZodスキーマ(`tags: z.array(z.string())`)違反による
+  ビルド破壊を未然に防ぐ、実際に価値のある堅牢化。
+- `hasMarkdownTable()` の正規表現を緩和(外枠パイプなしの表にも対応)。
+  緩和により誤検出(false positive)が増える理論的リスクはあるが、後続の区切り行
+  (`-+`)判定で担保されており、テストケース(4パターン)で実際に確認した限り妥当。
+
+### 2. 33テストは妥当か → **妥当**
+
+- パディング的な無意味アサーションはなく、`slugify`/`dedupeSlug`/`resolveSlug`/
+  `extractJson`/`pickNextTopic`/`stripBannedPhrases`/`hasMarkdownTable`/
+  `validateArticle`の各純粋関数と`topics.json`整合性を実際にexerciseしている。
+- 33件の内訳を実カウントで確認: slugify(4) + dedupeSlug(3) + resolveSlug(5) +
+  extractJson(4) + pickNextTopic(4) + stripBannedPhrases(3) + hasMarkdownTable(4) +
+  validateArticle(5) + topics.json整合性(1) = 33。誇張なし。
+- 外部API呼び出し(Anthropic API)はテスト対象外(コスト・再現性の観点で妥当な判断。
+  AGENTS.md 3.3の「偽装レスポンスで成功を装わない」原則にも合致)。
+
+### 3. topics.json 32件の重複・品質 → **重複なし。カテゴリ運用上の軽微な注意点のみ**
+
+- Python(`json`モジュール)で全32件のキーワードをセット比較 → **完全一致の重複ゼロ**
+- `done: true` の4件は既存の公開記事(slug)と完全一致 → 整合性OK
+- キーワードに実在の製品名/ブランド(`MagSafe`, `エアタグ`, `GaN`, `Perplexity`等)が
+  含まれるが、いずれも一般に広く知られた実在の技術・製品カテゴリであり、
+  generatorのシステムプロンプトが禁じる「実在しない製品名の捏造」には該当しない。
+  ただし商標を含むキーワードで記事を書く以上、本文中で当該ブランドの独自機能を
+  断定的に書かないよう(既存のシステムプロンプトの「不確かな事実の断定を避ける」
+  ルールで一定担保されてはいるが)、生成記事レビュー時に軽く意識すると良い
+- テーマの軽微な重複感(例: #6 ワイヤレスイヤホン ノイズキャンセリング と
+  #19 骨伝導イヤホン、#2/#16 モバイルバッテリー系)はあるが、検索意図・訴求軸が
+  明確に異なるため許容範囲(SEOカニバリゼーションの実害は小さい)
+
+### 4. RSS / JSON-LD / SEO / タグページ → **概ね良好。軽微な修正推奨あり**
+
+問題なし・良い点:
+- RSSはゼロ依存(`src/pages/rss.xml.ts`、外部パッケージなし)、`title`/`description`は
+  CDATAで正しくエスケープ、ビルドで `/rss.xml` 生成を実機確認済み
+- JSON-LD(`BlogPosting` + `BreadcrumbList`)は実データで構造検証、Googleリッチリザルト
+  要件(headline/datePublished/author/publisher等)を満たす
+- タグ一覧・タグ別アーカイブの内部リンクは全箇所で `encodeURIComponent()` を一貫使用
+  (index.astro / posts/[slug].astro / tags/index.astro 全て確認済み、表記漏れなし)
+
+推奨修正(軽微、いずれもブロッカーではない):
+
+**(a) JSON-LDの `</script>` エスケープ漏れ**(`src/pages/posts/[slug].astro:98`)。
+LLM生成のtitle/descriptionに万一 `</script>` という文字列が混入すると、埋め込み
+scriptタグが途中で閉じられHTMLが壊れる。現状の信頼モデル(topics.jsonはサイト運営者
+のみが編集)ではリスクは低いが、多層防御として一行で塞げる:
+```diff
+- <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
++ <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />
+```
+
+**(b) RSSの `<category>` タグがXMLエスケープされていない**(`src/pages/rss.xml.ts:18`)。
+`title`/`description`はCDATAで保護されているが、`tag`はそのまま埋め込まれている。
+タグに `&` `<` `>` 等が混入するとRSS自体が不正XMLになる:
+```diff
+- ${post.data.tags.map((tag) => `<category>${tag}</category>`).join('\n      ')}
++ ${post.data.tags.map((tag) => `<category><![CDATA[${tag}]]></category>`).join('\n      ')}
+```
+
+**(c) `primaryTag` フォールバックが存在しないタグページを指す可能性**
+(`src/pages/posts/[slug].astro:17`)。`post.data.tags[0] ?? 'ガジェット'` は、
+仮にLLMがtagsを一つも返さず配列が空になった場合、パンくず・JSON-LDの
+`BreadcrumbList` が `/tags/ガジェット/` を指すが、そのタグが実際にどの記事にも
+付いていなければ**存在しないページへのリンク**になる(現状は「ガジェット」タグが
+既存記事群で実際に使われているため顕在化していないが、構造的には脆い)。
+`validateArticle()` 側でtags空配列を許容している以上、根本対応は生成側で
+「tagsが空ならkeywordのカテゴリタグにフォールバックさせる」か、表示側で
+「実在するタグ一覧に含まれる場合のみリンク化する」ガードを入れるとより堅牢。
+
+**(d) `public/robots.txt` がプレースホルダドメインをハードコード**。
+`astro.config.mjs` の `site` を本番ドメインに変更しても(README手順4)、
+`public/robots.txt` は静的ファイルのため**自動追従しない**。ドメイン切替時に
+このファイルの更新を忘れるとGoogle Search ConsoleがSitemapを誤URLで参照し続ける。
+`rss.xml.ts` と同様に `src/pages/robots.txt.ts` として動的生成に寄せるか、
+README「3. ドメイン取得&ホスティング契約」の手順に
+「`public/robots.txt` のSitemap URLも実ドメインに更新すること」を一行追記するとよい。
+
+### 5. GitHub Actions / CI → **良好**
+
+- `ci.yml`: 全ブランチ・全PRで `npm test` → `npm run build` を実行。妥当なスコープ。
+- `generate-post.yml`: 生成前に`npm test`、生成後に`npm run build`を実行し、
+  ビルドが壊れる場合は**コミットされない**(GitHub Actionsのデフォルト動作として、
+  前段のstepが失敗すると`if:`条件付きの後続stepは暗黙に`success()`とANDされ
+  スキップされることを確認済み)。壊れたコンテンツが誤って公開される事故を
+  仕組みで防いでおり、良い設計。
+- `git push origin HEAD:${{ github.ref_name }}` への変更は、Claude版の素の`git push`
+  より安全(意図しないブランチへのpushを防ぐ、AGENTS.md 3.1のブランチ分離原則に合致)。
+
+軽微な指摘: `ci.yml` に `permissions:` ブロックが明示されていない
+(`generate-post.yml`は`contents: write`を明示済み)。テスト・ビルドのみ行い
+書き込みは不要なため、最小権限原則として明示するとより良い:
+```diff
+ jobs:
+   test-and-build:
+     runs-on: ubuntu-latest
++    permissions:
++      contents: read
+     steps:
+```
+
+### 6. セキュリティ → **重大な問題なし**
+
+- ハードコードされたAPIキー・トークン・秘密鍵: **検出されず**(正規表現でリポジトリ
+  全体をスキャン済み)
+- `.env` / `.gitignore` の扱いに変更なし、`.env.example` のみでSecretの雛形管理を継続
+- `eval()` / `new Function()` / 危険な`dangerouslySetInnerHTML`相当の使用: **なし**
+  (`set:html`の使用箇所は前述のJSON-LD 1箇所のみ、上記(a)で軽微な追加防御を提案)
+- 外部ネットワーク依存の新規追加: Google Fonts(`fonts.googleapis.com`/`fonts.gstatic.com`)
+  への `preconnect` + stylesheet読み込みが新規追加された。ゼロ依存方針からの小さな
+  逸脱だが、実害(プライバシー/表示速度)は軽微。気になる場合はセルフホスト
+  フォント化も検討可(必須ではない)
+
+### 7. 不要な複雑化がないか → **概ね適切。1点のみ軽微な重複あり**
+
+- UI/UXデザイン刷新・タグ回遊・JSON-LD・RSS・CI・テスト・キュー拡充は、いずれも
+  事前に許可された作業カテゴリ(SEO改善/internal linking/QA/CI/documentation等)に
+  対応しており、過剰な抽象化や不要な依存追加(状態管理ライブラリ、UIフレームワーク
+  等)は見られない。Astro単体構成のまま。
+- **軽微な重複**: `calcReadingTime()` 関数が `index.astro` / `tags/[tag].astro` /
+  `posts/[slug].astro` の3ファイルに全く同じ実装でコピーされている。
+  `src/lib/reading-time.ts` 等に切り出して1箇所に集約するのが望ましい
+  (機能に影響はないため、緊急度は低い)。
+
+### 結論・推奨アクション
+
+1. **マージはユーザー指示どおり保留**。上記(a)〜(f)はいずれも軽微でブロッカーではない
+   ため、マージ自体を妨げるものではない
+2. 対応するなら優先度順に: (d) robots.txtドメイン同期の注意書き >
+   (b) RSS category XMLエスケープ > (a) JSON-LD scriptエスケープ >
+   (f) calcReadingTime共通化 > (e) ci.yml permissions明示 > (c) primaryTagフォールバック
+3. 次にこのブランチを触るAI/人間は、上記diffをそのまま `gemini/riku-ai-os-bootstrap`
+   または統合先ブランチに適用すれば良い(本レビューでは対象ブランチのコードは
+   一切変更していない。提案のみ)
