@@ -106,6 +106,7 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 
 - Windows x64版 Devin Desktop `3.10.31` を公式配布経路から導入し、Exafunction, Inc. のAuthenticode署名が `Valid` であることを検証。
 - `devin-desktop` CLI `1.126.0` と Devin CLI `3000.10.31` をユーザーPATH上で利用可能な状態に確認。
+- `devin auth status` でログイン済み・`Devin Free / Free`・team membership Approved・MCP servers allowedを確認。ACP third-party agentsは公式上Pro/Max/Teams向けのため、FreeではローカルDevin/MCPを先にbenchmarkする。
 - 専用worktree `C:\Users\rkymg\dev\Cloude-windsurf` と branch `windsurf/riku-ai-os-bootstrap` を作成し、Aider/Gemini/Claude系branchから分離。
 - Devin Desktopはrepo直下の `AGENTS.md` を自動で共通ルールとして読むため、同内容を `.devin/rules/` に重複コピーしない設計を採用。動的状態は `docs/AI_CONTEXT.md` を継続利用。
 - `scripts/devin.ps1` を追加し、`windsurf/*` 以外のbranchでは起動を拒否。`-Agents` でAgent Command Centerを直接開ける。
@@ -118,7 +119,7 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 | --- | --- | --- | --- |
 | **Human Gate** | `ANTHROPIC_API_KEY` がGitHub Secretsに未登録。9/17〜9/19の3日連続でcronが失敗(2026-09-20のセッションでpreflight化し、以後は失敗ではなくスキップ扱いに変更) | 人間 (課金・API発行が必要なためAIは代行不可) | **未解消** |
 | **Human Gate / Aider credential** | Aider CLI・repo統合は完了したが、実LLM呼び出しに使うprovider credentialがPC上に未設定 | 人間 (秘密情報の投入/契約確認) | **未解消** |
-| **Human Gate / Devin account & plan** | Desktop/CLI導入・repo統合は完了。クラウド機能やACP third-party agent利用は、本人のサインイン状態と対象プラン/権限の確認が必要 | 人間 | **確認待ち** |
+| **Optional Human Gate / Devin ACP plan** | ログイン済み・Devin Free・MCP利用可。ACP third-party agentsは公式上Pro/Max/Teams向けのためFreeでは対象外。local IDE/MCP benchmarkには影響なし | 人間 | **必要時のみ** |
 | **Technical / npm audit** | `npm ci` が既存依存関係に low 1 / high 1 / critical 1 を報告。破壊的な `--force` 自動修正は未実行 | AI/人間 | 要個別調査 |
 | 派生ブロッカー | 上記によりAdSense審査(記事15-20本必要)、独自ドメイン接続、アフィリエイト申請も未着手 | 人間 | 未解消 |
 
@@ -185,8 +186,8 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 ## 10. Next actions
 
 優先度順:
-1. **(Human Gate / Devin)** Devin Desktopのサインイン状態と利用プラン/権限を確認し、利用可能ならAgent Command CenterでACP agentを有効化
-2. **(Benchmark)** 同一の小規模Issueを Cursor / Claude Code / Codex / Devin Desktop に割り当て、速度・変更品質・test/build成功率・引き継ぎ品質を比較
+1. **(Benchmark)** 同一の小規模Issueを Cursor / Claude Code / Codex / Devin Desktop に割り当て、速度・変更品質・test/build成功率・引き継ぎ品質を比較
+2. **(Routing)** Devin Freeのlocal IDE/MCPで勝つ工程だけ正式routeへ採用。ACP third-party agentsは必要性が実証された場合のみpaid planをHuman Gateで検討
 3. **(Security)** `npm audit` で low 1 / high 1 / critical 1 の依存脆弱性を特定し、破壊的変更を避けて個別修正方針を決める
 4. **(Human Gate / Aider)** 実LLM呼び出し用provider credentialを安全な環境変数/OAuth経路で設定し、同一タスクbenchmarkへ参加させる
 5. **(Human Gate / Site)** `ANTHROPIC_API_KEY` をGitHub Secretsに登録 → 記事生成cron再開
@@ -245,19 +246,19 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
   - Riku OS Master `AI Tool Registry` AIT-030 を `INSTALLED / BENCHMARK PENDING` に更新
   - Devin Desktop / Windsurf `3.10.31` を導入し、`windsurf/riku-ai-os-bootstrap` 専用worktree/branch、`scripts/devin.ps1` branch guard、root `AGENTS.md` 共通context運用を実装
   - `devin-desktop --status` で `Cloude-windsurf` workspace 62 files・`AGENTS.md` 検出・Windsurf language server稼働を確認
-  - Riku OS Master `AI Tool Registry` AIT-046 を `INSTALLED / REPO INTEGRATED / BENCHMARK PENDING` として新規登録
+  - Riku OS Master `AI Tool Registry` AIT-046 を `INSTALLED / LOGGED IN / LOCAL PILOT READY / BENCHMARK PENDING` として登録
 - decisions: 下記 DECISION_UPDATE 参照
 - files_changed: `src/layouts/BaseLayout.astro`, `src/pages/index.astro`, `src/pages/posts/[slug].astro`,
   `src/pages/about.astro`, `src/pages/contact.astro`, `src/pages/privacy.astro`,
   `src/pages/tags/index.astro`, `src/pages/tags/[tag].astro`, `src/pages/rss.xml.ts`,
   `data/topics.json`, `tests/generate-post.test.mjs`, `AGENTS.md`, `README.md`, `.aider.conf.yml`, `scripts/aider.ps1`, `scripts/devin.ps1`, `docs/AI_CONTEXT.md`
 - systems_changed: Astro static site routes (13 pages + RSS 2.0 + sitemap), test suite (33 tests), Aider CLI/shared Coding Agent integration, Devin Desktop / Windsurf shared Coding Agent integration
-- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定。Aider実LLM用provider credentialも未設定。Devin Desktopはlocal IDE/repo統合済みだが、cloud/ACP利用に必要なaccount/plan entitlementは確認待ち(Human Gateとして継続管理)
+- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定。Aider実LLM用provider credentialも未設定。Devin Desktopはログイン済み・Devin Free・MCP allowedでlocal IDE/repo利用可能。ACP third-party agentsはFree対象外のため必要性が出るまでupgradeしない
 - unresolved_issues: Aider/Devinの同一タスクbenchmark未実施、npm auditでlow1/high1/critical1、AdSense/アフィリエイト/ドメイン契約は未着手のHuman作業。Riku OS Master AIT-030/AIT-046へのwritebackは完了
 - next_actions: 上記「10. Next actions」参照
 - blockers: 下記 BLOCKER 参照
 - source_of_truth: このリポジトリ(コード) + Riku OS Master(意思決定・進捗)
-- handoff_notes: デザイン刷新、タグ回遊、JSON-LD構造化データ、RSSフィード、トピックキュー32件、単体テスト33件に加え、Aider 0.86.2とDevin Desktop / Windsurf 3.10.31を共通Coding Agent運用へ統合し、Riku OS AIT-030/AIT-046 writebackまで完了。残りはaccount/credential確認後の同一Issue benchmark、npm audit個別調査、既存Human Gate
+- handoff_notes: デザイン刷新、タグ回遊、JSON-LD構造化データ、RSSフィード、トピックキュー32件、単体テスト33件に加え、Aider 0.86.2とDevin Desktop / Windsurf 3.10.31を共通Coding Agent運用へ統合し、Devin Freeログイン/MCP可まで確認、Riku OS AIT-030/AIT-046 writebackまで完了。残りはlocal Devinを含む同一Issue benchmark、Aider credential、npm audit個別調査、既存Human Gate
 
 ### DECISION_UPDATE
 
@@ -290,12 +291,12 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 - does_not_block: Aider CLI起動、branch guard、共有context、test/build wiring、Git運用規約、Riku OS writeback
 
 - id: HG-003
-- type: Human Gate (Devin account / plan entitlement)
-- description: Devin Desktop / CLI / local repo統合は完了しているが、cloud機能とACP third-party agentsの利用可否は本人のサインイン状態・対象plan/権限確認が必要
+- type: Optional Human Gate (Devin paid plan / ACP)
+- description: `devin auth status` でログイン済み・Devin Free・MCP allowedを確認。ACP third-party agentsは公式上Pro/Max/Teams向けのためFreeでは対象外
 - owner: 人間
-- required_action: Devin Desktopでサインイン状態とplan entitlementを確認し、対象planならAgent Command CenterのACP agentを有効化する
-- blocks: cloud/ACPを含むDevinのフルbenchmark
-- does_not_block: local IDE起動、workspace/repo読込、AGENTS.md共有context、windsurf/* branch運用、test/build、Riku OS writeback
+- required_action: local Devin benchmarkでACPが必要と判断された場合のみ、paid planの費用対効果を確認してupgradeを承認する
+- blocks: ACP third-party agentsを使う追加benchmarkのみ
+- does_not_block: local IDE起動、workspace/repo読込、AGENTS.md共有context、MCP、windsurf/* branch運用、test/build、Riku OS writeback
 
 - id: TECH-001
 - type: Technical debt (dependency security)
