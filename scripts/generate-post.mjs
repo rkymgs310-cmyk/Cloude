@@ -5,6 +5,7 @@
 
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -13,17 +14,21 @@ const POSTS_DIR = path.join(ROOT, 'src', 'content', 'posts');
 const MODEL = process.env.GENERATE_POST_MODEL ?? 'claude-haiku-4-5-20251001';
 
 // 生成AIが書きがちな定型の締め文句。含む文をまるごと除去する。
-const BANNED_PHRASES = [
+export const BANNED_PHRASES = [
   'いかがでしたか',
   'いかがでしたでしょうか',
+  'いかがだったでしょうか',
   '本記事が少しでも参考になれば幸いです',
+  '参考になれば幸いです',
   'この記事が少しでもお役に立てば嬉しいです',
+  'お役に立てれば幸いです',
   '最後までお読みいただきありがとうございました',
 ];
 
-const PRIORITY_RANK = { high: 0, 高: 0, mid: 1, normal: 1, low: 2, 低: 2 };
+export const PRIORITY_RANK = { high: 0, 高: 0, mid: 1, normal: 1, low: 2, 低: 2 };
 
-function slugify(input) {
+export function slugify(input) {
+  if (!input || typeof input !== 'string') return '';
   return input
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -31,16 +36,61 @@ function slugify(input) {
     .slice(0, 60);
 }
 
-function extractJson(text) {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) {
-    throw new Error(`Claudeの応答からJSONを抽出できませんでした:\n${text}`);
-  }
-  return JSON.parse(text.slice(start, end + 1));
+export function dedupeSlug(baseSlug, used) {
+  if (!used.has(baseSlug)) return baseSlug;
+  let n = 2;
+  while (used.has(`${baseSlug}-${n}`)) n += 1;
+  return `${baseSlug}-${n}`;
 }
 
-function pickNextTopic(topics) {
+export function resolveSlug(article, topic, fallbackIndex, used = new Set()) {
+  const candidates = [
+    article?.slug,
+    article?.title,
+    topic?.keyword,
+  ];
+  let baseSlug = '';
+  for (const candidate of candidates) {
+    const s = slugify(candidate ?? '');
+    if (s) {
+      baseSlug = s;
+      break;
+    }
+  }
+  if (!baseSlug) {
+    const fallbackNum = typeof fallbackIndex === 'number' ? fallbackIndex + 1 : Date.now();
+    baseSlug = `post-${fallbackNum}`;
+  }
+  return dedupeSlug(baseSlug, used);
+}
+
+export function extractJson(text) {
+  if (!text || typeof text !== 'string') {
+    throw new Error('Claudeの応答が空です。');
+  }
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  const targetText = codeBlockMatch ? codeBlockMatch[1] : text;
+
+  const start = targetText.indexOf('{');
+  const end = targetText.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error(`Claudeの応答からJSONを抽出できませんでした:\n${text}`);
+  }
+  const jsonStr = targetText.slice(start, end + 1);
+  try {
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    // 末尾カンマの自動除去によるフォールバック
+    const cleaned = jsonStr.replace(/,\s*([}\]])/g, '$1');
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      throw new Error(`Claudeの応答のJSONパースに失敗しました (${err.message}):\n${jsonStr}`);
+    }
+  }
+}
+
+export function pickNextTopic(topics) {
   const candidates = topics
     .map((t, index) => ({ t, index }))
     .filter(({ t }) => !t.done);
@@ -53,7 +103,7 @@ function pickNextTopic(topics) {
   return candidates[0] ?? null;
 }
 
-function warnDuplicateKeywords(topics) {
+export function warnDuplicateKeywords(topics) {
   const seen = new Map();
   for (const t of topics) {
     seen.set(t.keyword, (seen.get(t.keyword) ?? 0) + 1);
@@ -65,21 +115,25 @@ function warnDuplicateKeywords(topics) {
   }
 }
 
-function stripBannedPhrases(body) {
+export function stripBannedPhrases(body) {
+  if (!body || typeof body !== 'string') return '';
   return body
     .split(/\n{2,}/)
     .map((paragraph) => {
       const sentences = paragraph.split('。');
       const kept = sentences.filter(
-        (s) => !BANNED_PHRASES.some((phrase) => s.includes(phrase)),
+        (s) => s.trim() === '' || !BANNED_PHRASES.some((phrase) => s.includes(phrase)),
       );
-      return kept.join('。');
+      const hasContent = kept.some((s) => s.trim().length > 0);
+      return hasContent ? kept.join('。') : '';
     })
+    .filter((paragraph) => paragraph.trim().length > 0)
     .join('\n\n')
-    .replace(/\n{3,}/g, '\n\n');
+    .trim();
 }
 
-function warnDuplicateParagraphs(body) {
+export function warnDuplicateParagraphs(body) {
+  if (!body || typeof body !== 'string') return;
   const paragraphs = body
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -95,17 +149,18 @@ function warnDuplicateParagraphs(body) {
   }
 }
 
-function hasMarkdownTable(body) {
+export function hasMarkdownTable(body) {
+  if (!body || typeof body !== 'string') return false;
   const lines = body.split('\n');
   return lines.some((line, i) => {
-    const isRow = /^\s*\|.*\|\s*$/.test(line);
+    const isRow = /^\s*\|?.+\|.+\|?\s*$/.test(line);
     const next = lines[i + 1] ?? '';
-    const isSeparator = /^\s*\|?[\s:|-]+\|[\s:|-]+\|?\s*$/.test(next);
+    const isSeparator = /^\s*\|?\s*:?-+:?\s*\|\s*:?-+:?\s*\|?.*$/.test(next);
     return isRow && isSeparator;
   });
 }
 
-function validateArticle(article) {
+export function validateArticle(article) {
   const required = ['title', 'description', 'slug', 'body'];
   for (const key of required) {
     if (!article[key] || typeof article[key] !== 'string') {
@@ -118,9 +173,18 @@ function validateArticle(article) {
   if (!hasMarkdownTable(article.body)) {
     throw new Error('生成された本文に比較表(Markdownテーブル)が含まれていません。');
   }
+
+  // タグの正規化: 文字列で返された場合のカンマ区切り対応、トリム、空要素除外
+  if (typeof article.tags === 'string') {
+    article.tags = article.tags.split(/[,、]/).map((t) => t.trim()).filter(Boolean);
+  } else if (!Array.isArray(article.tags)) {
+    article.tags = [];
+  } else {
+    article.tags = article.tags.map((t) => String(t).trim()).filter(Boolean);
+  }
 }
 
-async function existingSlugs(topics) {
+export async function existingSlugs(topics) {
   const fromTopics = topics.map((t) => t.slug).filter(Boolean);
   let fromFiles = [];
   try {
@@ -132,14 +196,7 @@ async function existingSlugs(topics) {
   return new Set([...fromTopics, ...fromFiles]);
 }
 
-function dedupeSlug(baseSlug, used) {
-  if (!used.has(baseSlug)) return baseSlug;
-  let n = 2;
-  while (used.has(`${baseSlug}-${n}`)) n += 1;
-  return `${baseSlug}-${n}`;
-}
-
-async function main() {
+export async function main() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY が設定されていません。');
@@ -171,7 +228,7 @@ SEOを意識した日本語のブログ記事をMarkdownで書きます。
 {
   "title": "記事タイトル(32文字以内目安)",
   "description": "meta description(80文字以内)",
-  "slug": "url-safe-english-slug",
+  "slug": "url-safe-english-slug (半角英数字とハイフンのみ)",
   "tags": ["タグ1", "タグ2"],
   "body": "Markdown本文(見出し・比較表を含む)"
 }`;
@@ -200,8 +257,7 @@ SEOを意識した日本語のブログ記事をMarkdownで書きます。
   warnDuplicateParagraphs(article.body);
 
   const used = await existingSlugs(topics);
-  const baseSlug = slugify(article.slug || article.title || topic.keyword);
-  const slug = dedupeSlug(baseSlug, used);
+  const slug = resolveSlug(article, topic, nextIndex, used);
   const filePath = path.join(POSTS_DIR, `${slug}.md`);
 
   const frontmatter = [
@@ -225,7 +281,10 @@ SEOを意識した日本語のブログ記事をMarkdownで書きます。
   console.log(`記事を生成しました: ${filePath}`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exitCode = 1;
-});
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  main().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
+}

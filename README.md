@@ -12,12 +12,15 @@ AI/ガジェット系のニッチサイトです。Claude APIで記事を自動�
 - **`src/content/posts/`** — 記事本体(Markdown)。Content Collectionsで管理
 - **`data/topics.json`** — 記事化するキーワードのキュー
 - **`scripts/generate-post.mjs`** — キューから1件取り出しClaude APIで記事を生成
+- **`tests/`** — 生成・バリデーションロジックの単体テストスイート
 - **`.github/workflows/generate-post.yml`** — 毎日自動で記事生成→push するcron
+- **`.github/workflows/ci.yml`** — テストとビルドの自動検証CI
 
 ## ローカルでの動作確認
 
 ```bash
 npm install
+npm test          # 単体テストの実行(node:test)
 npm run dev       # http://localhost:4321 で確認
 npm run build     # 本番ビルド(dist/に出力)
 ```

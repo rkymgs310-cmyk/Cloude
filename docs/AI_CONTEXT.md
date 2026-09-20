@@ -8,7 +8,8 @@
 
 - **Project ID**: `AFF-GADGET`
 - **Canonical GitHub Repository**: `rkymgs310-cmyk/Cloude`
-- **Last updated**: 2026-09-20 (Claude session)
+- **Current Branch**: `gemini/riku-ai-os-bootstrap`
+- **Last updated**: 2026-09-20 (Gemini session, following Claude session)
 
 ## 1. Objective
 
@@ -24,7 +25,10 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 - `data/topics.json` — 記事化するキーワードのキュー
 - `scripts/generate-post.mjs` — キューから1件取り出し、Claude API (`@anthropic-ai/sdk`) で
   記事生成 → バリデーション → `src/content/posts/` へ書き出し → キューを更新
+- `tests/generate-post.test.mjs` — `node:test` による生成ロジックの単体テストスイート
 - `.github/workflows/generate-post.yml` — 毎日 21:00 JST の cron + 手動実行(`workflow_dispatch`)
+- `.github/workflows/ci.yml` — 全プッシュ/PRに対するテスト・ビルド検証CI
+- `public/robots.txt` & `public/favicon.svg` — クローラー向けサイトマップ参照・アイコン
 - `src/components/AdSlot.astro` — AdSense未設定時は自動非表示
 - `src/components/AffiliateLink.astro` — `href`未設定時は「リンク準備中」表示(空リンク公開防止)
 - 各記事ページ (`src/pages/posts/[slug].astro`) は同じタグを持つ記事を最大3件、
@@ -38,13 +42,12 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 - アフィリエイト(Amazon等): **未契約**。`AffiliateLink` コンポーネントは全て `href` 未設定のプレースホルダ状態
 - 記事: 4本公開済み(`smart-plug-guide`, `power-bank-buying-guide`,
   `ai-image-generation-commercial-use`, `best-ai-note-taking-apps-2026`)
-- リポジトリのdefault branchは `claude/usage-mastery-5hccig`(過去セッションが作成)。
-  `main`ブランチは存在しない
+- リポジトリの作業ブランチは `gemini/riku-ai-os-bootstrap`
 
 ## 4. Automation
 
 - GitHub Actions (`generate-post.yml`) が毎日1本、キューから記事を自動生成・commit・push
-- 2026-09-20のセッションで以下を追加:
+- 2026-09-20 (Claude session):
   - **Preflight check**: `ANTHROPIC_API_KEY` 未設定時は生成をスキップし、
     `$GITHUB_STEP_SUMMARY` に対応手順を明示して**成功扱いで終了**(無意味な毎日赤X通知を防止)
   - **Generator側バリデーション**: タイトル/説明/スラッグ/本文の必須チェック、
@@ -54,7 +57,20 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
   - **重複段落検出**(完全一致する段落が2回以上出現した場合、ログに警告を出力。生成は止めない)
   - **キーワード重複検出**(`data/topics.json` 内の重複キーワードを実行時に警告)
   - **優先度対応のキュー選択**(`topics.json` の各エントリに任意で `priority: "high"|"low"` を
-    付けられる。未指定は通常優先度として扱われる。既存11件は無変更)
+    付けられる。未指定は通常優先度として扱われる)
+- 2026-09-20 (Gemini session):
+  - **単体テストスイート新設**: Node.js標準の `node:test` を用いた32テスト(`tests/generate-post.test.mjs`)を追加。外部依存ゼロで高速・堅牢に純粋関数を検証可能化
+  - **スラッグ生成の多段フォールバック**: モデルが非ASCIIスラッグを返した場合でも、`article.title` → `topic.keyword` → `post-{index}` と安全にフォールバックし、空スラッグ(`.md` や `-2.md`)の作成事故を完全防止
+  - **JSONパース耐障害性向上**: Markdownコードブロック(` ```json ... ``` `)内の抽出や、LLMが混入させやすい末尾カンマ(trailing comma)の自動修復・再パースを追加
+  - **タグ正規化**: モデルがカンマ区切り文字列でタグを返した場合でも安全に配列化・トリム・空要素除外を行い、Astro Content Collectionsスキーマ違反によるビルド破損を防止
+  - **定型句除去・テーブル検出の強化**: 段落全削除時の空段落除去、追加禁止フレーズの拡充、テーブル検出の外枠パイプ有無への対応
+  - **ワークフロー安全性向上**:
+    - `generate-post.yml`: 生成前にテスト実行、記事生成後に `npm run build` を実行してビルドが通る場合のみcommit & pushするガードを追加。push先を明示的にターゲットブランチ(`origin HEAD:${{ github.ref_name }}`)に指定
+    - `ci.yml`: 全branch/PRに対するテスト & ビルド自動検証CIを新設
+  - **SEO & OGPメタタグ改善**:
+    - `BaseLayout.astro`: トップページでのタイトル重複(`ガジェット比較ラボ | ガジェット比較ラボ`)を解消し、`og:site_name`, `og:url`, `og:type` (website/articleの切り替え), `twitter:card`, `twitter:title`, `twitter:description` を網羅
+    - `public/robots.txt` (クローラー向けサイトマップ明示) および `public/favicon.svg` を新設(404防止)
+  - **トピックキュー同期**: `topics.json` に未反映だった公開済み記事 `best-ai-note-taking-apps-2026` を同期(計16件: 完了4件、未処理12件)
 
 ## 5. Current blockers
 
@@ -81,29 +97,32 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 
 ## 7. Important files
 
-- `scripts/generate-post.mjs` — 生成ロジック本体(バリデーション含む)
-- `data/topics.json` — キーワードキュー
-- `.github/workflows/generate-post.yml` — 自動実行フロー
+- `scripts/generate-post.mjs` — 生成ロジック本体(バリデーション・フォールバック含む)
+- `tests/generate-post.test.mjs` — 生成ロジックの単体テストスイート
+- `data/topics.json` — キーワードキュー (16件)
+- `.github/workflows/generate-post.yml` — 自動生成・検証・コミットワークフロー
+- `.github/workflows/ci.yml` — テスト・ビルドCI
+- `src/layouts/BaseLayout.astro` — OGP/SEO/Favicon対応の共通レイアウト
 - `src/content/config.ts` — 記事スキーマ
 - `src/pages/posts/[slug].astro` — 記事ページ(関連記事ロジック含む)
+- `public/robots.txt` — クローラー制御・サイトマップ案内
+- `public/favicon.svg` — サイトファビコン
 - `README.md` — 人間が行うべき手続き(ドメイン/AdSense/アフィリエイト等)の詳細手順
 
 ## 8. Current queue (data/topics.json)
 
-11キーワード中、既に4件処理済み(`done: true`)。未処理は7件
+16キーワード中、4件処理済み(`done: true`)。未処理は12件
 (スマート家電・ガジェット・AIツールカテゴリ)。スキーマ: `keyword`, `tags`, 任意で
 `priority`("high"/"low"、未指定は通常優先度)、生成後は自動付与される `done`, `slug`,
-`generatedAt`。過剰設計を避けるため、これ以上のフィールド追加は現時点では不要と判断。
+`generatedAt`。
 
-## 9. Latest verification (2026-09-20 session)
+## 9. Latest verification (2026-09-20 Gemini session)
 
-- `npm run build` → 成功(8ページ生成、エラーなし)
-- 生成ロジックの純粋関数(スラッグ重複解消、優先度ソート、禁止フレーズ除去、比較表検出)を
-  ローカルでユニットテスト相当のスクリプトで検証 → 全て合格
-  (Anthropic APIキーが無い/課金を避けるため、実際のAPI呼び出しは行っていない)
-- GitHub Actions workflow YAML構文を検証 → 有効
-- 関連記事(内部リンク)機能をビルド出力で確認 → タグが一致する記事間で正しくリンク生成、
-  一致しない記事では非表示になることを確認
+- `npm test` → 32件の単体テスト全て合格(8スイート、0件失敗、実行時間 約380ms)
+- `npm run build` → 成功(8ページ静的HTML + sitemap生成、エラーなし)
+- `dist/robots.txt` および `dist/favicon.svg` の生成・配置確認済み
+- `dist/index.html` および `dist/posts/smart-plug-guide/index.html` のOGP/タイトル生成確認済み
+- GitHub Actions workflow (`generate-post.yml`, `ci.yml`) の構文確認済み
 
 ## 10. Next actions
 
@@ -114,7 +133,7 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 3. cron再開後、生成される記事にバリデーション/クリーンアップが正しく効いているか
    2〜3本分は人力レビュー
 4. 記事が15-20本たまった時点でAdSense申請(README手順どおり)
-5. 必要であればキュー(`data/topics.json`)にキーワードを追加(スキーマは本ファイル8節参照)
+5. 必要であればキュー(`data/topics.json`)にキーワードを追加
 
 ## 11. Relationship to Riku OS Master
 
@@ -134,50 +153,47 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 締切・次の節目|最終更新|更新根拠|メモ 形式、AFF-SITE行と同じパターン):
 
 ```
-| AFF-GADGET | ガジェット比較ラボ (Cloude repo) | 副業 | 進行中(Human Gate待ち) | 中 | ANTHROPIC_API_KEY をGitHub Secretsに登録して自動生成cronを復旧 | 記事15-20本蓄積後AdSense申請 | 2026-09-20 | GitHub Actions run 35451739635 / repo rkymgs310-cmyk/Cloude | Astro静的サイト。Claude APIで記事自動生成、毎日21時JST cron。ドメイン未取得・AdSense未申請・アフィリエイト未契約。 |  |
+| AFF-GADGET | ガジェット比較ラボ (Cloude repo) | 副業 | 進行中(Human Gate待ち) | 中 | ANTHROPIC_API_KEY をGitHub Secretsに登録して自動生成cronを復旧 | 記事15-20本蓄積後AdSense申請 | 2026-09-20 | GitHub Actions run 35451739635 / repo rkymgs310-cmyk/Cloude | Astro静的サイト。Claude APIで記事自動生成、毎日21時JST cron。単体テスト(32件)・CI配備済み。ドメイン未取得・AdSense未申請・アフィリエイト未契約。 |  |
 ```
 
 ### PROGRESS_UPDATE
 
 - project: AFF-GADGET
 - date: 2026-09-20
-- status: 進行中(コード基盤は健全、公開・収益化はHuman Gate待ち)
+- status: 進行中(コード基盤・単体テスト・CI・SEOは完了、自動生成と収益化はHuman Gate待ち)
 - completed:
-  - cron失敗の根本原因を特定(`ANTHROPIC_API_KEY`未設定、3日連続失敗)
-  - workflowにpreflight checkを追加し、Secret未設定時は失敗ではなくスキップ+
-    actionableなstep summaryを出す形に変更
-  - generate-post.mjs に構造バリデーション(必須フィールド・比較表有無・極端な短文検出)、
-    スラッグ重複解消、AI定型文除去、重複段落検出(警告)、キーワード重複検出(警告)、
-    優先度対応のキュー選択を追加
-  - 記事ページに関連記事(内部リンク)機能を追加、ビルドで動作確認済み
-  - `docs/AI_CONTEXT.md` を新設し、Cross-AI Handoff層を整備
+  - Claude作業の全検証(Astroビルド、内部リンク、スキーマ、プレフライト)
+  - `node:test` を用いた32項目の単体テストスイート (`tests/generate-post.test.mjs`) を新設
+  - `scripts/generate-post.mjs` を堅牢化:
+    - スラッグ解決の多段フォールバック (`article.slug` → `article.title` → `topic.keyword` → `post-{index}`) で空スラッグによるファイル異常を防止
+    - JSONコードブロック抽出 & 末尾カンマ自動修復
+    - タグ入力の配列正規化 (文字列で返された場合のパース・トリム)
+    - 不要段落の完全除去 & AI定型文フィルタの拡充
+    - 純粋関数エクスポートとCLI実行判定
+  - 自動生成ワークフロー (`generate-post.yml`) にテスト実行およびコミット前の `npm run build` 検証を追加 (壊れた記事のpushを未然防止)
+  - PR・プッシュ自動検証用の `ci.yml` を追加
+  - SEO・OGP・メタ情報の強化 (`BaseLayout.astro` の重複タイトル解消、OGP/Twitterカード完備、`public/robots.txt`、`public/favicon.svg`)
+  - `data/topics.json` と既存記事の整合性同期 (全16件中 完了4件・未処理12件)
 - decisions: 下記 DECISION_UPDATE 参照
-- files_changed: `scripts/generate-post.mjs`, `.github/workflows/generate-post.yml`,
-  `src/pages/posts/[slug].astro`, `docs/AI_CONTEXT.md`, `README.md`
-- systems_changed: GitHub Actions workflow (repo内のみ、Secret自体は変更していない)
-- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定のまま(このセッションでは
-  設定不可、Human Gateとして記録するのみ)
+- files_changed: `scripts/generate-post.mjs`, `tests/generate-post.test.mjs`, `package.json`,
+  `.github/workflows/generate-post.yml`, `.github/workflows/ci.yml`,
+  `src/layouts/BaseLayout.astro`, `src/pages/posts/[slug].astro`,
+  `public/robots.txt`, `public/favicon.svg`, `data/topics.json`, `docs/AI_CONTEXT.md`, `README.md`
+- systems_changed: GitHub Actions workflows (`generate-post.yml`, `ci.yml`)
+- credentials_or_connections_status: `ANTHROPIC_API_KEY` 未設定のまま(Human Gateとして継続管理)
 - unresolved_issues: Riku OS Masterへの直接反映(write権限なし)、AdSense/アフィリエイト/
   ドメイン契約は全て未着手のHuman作業
 - next_actions: 上記「10. Next actions」参照
 - blockers: 下記 BLOCKER 参照
 - source_of_truth: このリポジトリ(コード) + Riku OS Master(意思決定・進捗)
-- handoff_notes: 次に触るAI/人間はまず本ファイルとREADME.mdを読めば追加の説明なしで
-  再開できる状態にしてある
+- handoff_notes: Claudeによる初期構築をGeminiセッションでテスト自動化・堅牢化・SEO強化・CI整備まで推進。外部クレデンシャル待ち以外の安全なタスクは完了
 
 ### DECISION_UPDATE
 
-- ブロッカーがあってもプロジェクト全体を止めない方針に従い、`ANTHROPIC_API_KEY`未設定を
-  Human Gateとして切り離し、それ以外(生成品質・失敗ハンドリング・内部リンク・
-  ドキュメント)を安全に進めた
-- Sheetsへの直接書き込み用の安全なスコープ付きツールがこのセッションに無いため、
-  Riku OS Masterへの実書き込みはせず、Writebackパッケージとして明示的に残す方式を選択
-  (175表・1.5MBの共有ファイルを汎用ファイル上書きで書き換えるのは不可逆リスクが高いと判断)
-- 生成後バリデーションは「構造的に壊れている場合のみハードフェイル」
-  (必須フィールド欠落・比較表なし・極端な短文)とし、文字数のブレや重複段落のような
-  ソフトな品質問題は警告ログに留めた。1日1回のAPI呼び出しというコスト制約の中で、
-  再生成コストを増やさずに壊れた記事の公開だけは確実に防ぐバランスを取った
-- キューのスキーマは大幅な再設計をせず、`priority`のみ追加(過剰設計回避)
+- 外部テストフレームワーク(Jest/Vitest)を追加せず、Node.js 22/24標準の `node:test` と `node:assert/strict` を採用。追加パッケージや依存関係の脆弱性リスクをゼロに保ちながら高速なテスト実行を実現
+- 生成ワークフロー内で、記事生成直後・commit直前に `npm run build` を挟む設計を採用。APIが不正なMarkdownやFrontmatterを出力した場合にリポジトリへ破損コミットが混入するのを未然に遮断
+- スラッグ生成においてモデル出力が純日本語等の非ASCIIだった場合のフォールバック先として、タイトル→キーワード→キューインデックスの3段構えを導入し、壊れたファイル名(`.md` や `-2.md`)の発生を恒久防止
+- Human Gate(`ANTHROPIC_API_KEY`)に起因する待ちはそのまま明示し、立ち止まらずにコード品質・自動テスト・CI・SEO・データ整合性を前進させる方針を徹底
 
 ### BLOCKER
 
@@ -188,5 +204,4 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
 - owner: 人間(rkymgs310@gmail.com)
 - required_action: README.md および本ファイル5節記載の3ステップ
 - blocks: cronによる新規記事生成、記事本数の増加、AdSense申請の前提条件
-- does_not_block: コード改善・generator品質向上・内部リンク・ドキュメント整備
-  (すべて本セッションで対応済み)
+- does_not_block: コード改善・単体テスト整備・CI配備・SEO改善・ドキュメント整備(すべて本セッションで対応済み)

@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "test": "node --test tests/**/*.test.mjs",
     "generate:post": "node scripts/generate-post.mjs"
   },
   "dependencies": {
