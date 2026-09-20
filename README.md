@@ -38,6 +38,19 @@ git switch -c aider/<task-name>
 
 LLM用のAPIキー/OAuth tokenは環境変数またはAiderの安全な設定経路で与え、リポジトリには保存しません。
 
+### Devin Desktop / Windsurf で作業する場合
+
+Devin Desktop（旧Windsurf）は専用の `windsurf/*` ブランチまたはworktreeで起動してください。repo直下の
+`AGENTS.md` はDevin Desktopが自動で読み込むため、共通ルールを `.devin/rules/` に重複コピーしません。
+現在地と引き継ぎは `docs/AI_CONTEXT.md` を正本として参照します。
+
+```powershell
+git switch -c windsurf/<task-name>
+.\scripts\devin.ps1
+```
+
+Agent Command Centerを直接開く場合は `.\scripts\devin.ps1 -Agents` を使用します。
+
 記事を1本手動生成したい場合:
 
 ```bash

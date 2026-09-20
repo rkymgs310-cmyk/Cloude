@@ -1,7 +1,7 @@
 # AGENTS.md — AI Coding Agents 共通運用規約 (Shared Operating Standard)
 
 このリポジトリ (`rkymgs310-cmyk/Cloude`) において作業するすべての AI コーディングエージェント
-（ChatGPT, Claude Code, Gemini / Antigravity, Aider, その他）および開発者が遵守すべき恒久的な共通運用ルールです。
+（ChatGPT, Claude Code, Gemini / Antigravity, Aider, Devin Desktop / Windsurf, その他）および開発者が遵守すべき恒久的な共通運用ルールです。
 
 ## 1. 3大ドキュメントの役割分担 (Document Roles)
 
