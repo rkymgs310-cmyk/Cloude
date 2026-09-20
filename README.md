@@ -3,8 +3,8 @@
 AI/ガジェット系のニッチサイトです。Claude APIで記事を自動生成し、GitHub Actionsの
 スケジュール実行で「生成 → コミット → 自動デプロイ」を回す構成になっています。
 
-> **AI/coding agentへ**: 現在のブロッカー・自動化の状態・次にやるべきことは
-> [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) にまとめてあります。作業前に確認してください。
+> **AI/coding agentへ**: 共通運用規約は [`AGENTS.md`](AGENTS.md)、現在のブロッカー・自動化の状態・次にやるべきことは
+> [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) にまとめてあります。作業前に必ず確認してください。
 
 ## 構成
 

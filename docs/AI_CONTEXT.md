@@ -97,6 +97,7 @@ Riku OS全体でのカテゴリは「Content OS / Affiliate / Website」。
 
 ## 7. Important files
 
+- `AGENTS.md` — AI Coding Agents 共通運用規約 (Cross-AI Rules)
 - `scripts/generate-post.mjs` — 生成ロジック本体(バリデーション・フォールバック含む)
 - `tests/generate-post.test.mjs` — 生成ロジックの単体テストスイート
 - `data/topics.json` — キーワードキュー (16件)
@@ -174,8 +175,9 @@ Project Registry表への新規行(既存の案件ID|案件名|領域|状態|優
   - PR・プッシュ自動検証用の `ci.yml` を追加
   - SEO・OGP・メタ情報の強化 (`BaseLayout.astro` の重複タイトル解消、OGP/Twitterカード完備、`public/robots.txt`、`public/favicon.svg`)
   - `data/topics.json` と既存記事の整合性同期 (全16件中 完了4件・未処理12件)
+  - リポジトリ直下に AI 共通運用規約 `AGENTS.md` を新設 (READ-PLAN-EXECUTE-VERIFY-WRITEBACK-NEXT サイクル、ブランチ分離、Human Gate基準の恒久標準化)
 - decisions: 下記 DECISION_UPDATE 参照
-- files_changed: `scripts/generate-post.mjs`, `tests/generate-post.test.mjs`, `package.json`,
+- files_changed: `AGENTS.md`, `scripts/generate-post.mjs`, `tests/generate-post.test.mjs`, `package.json`,
   `.github/workflows/generate-post.yml`, `.github/workflows/ci.yml`,
   `src/layouts/BaseLayout.astro`, `src/pages/posts/[slug].astro`,
   `public/robots.txt`, `public/favicon.svg`, `data/topics.json`, `docs/AI_CONTEXT.md`, `README.md`
