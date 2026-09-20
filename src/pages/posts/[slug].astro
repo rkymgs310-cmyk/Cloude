@@ -14,51 +14,436 @@ export async function getStaticPaths() {
 const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
 
+const primaryTag = post.data.tags[0] ?? 'ガジェット';
+
 const relatedPosts = allPosts
   .filter((p) => p.slug !== post.slug && p.data.tags.some((tag) => post.data.tags.includes(tag)))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   .slice(0, 3);
+
+function calcReadingTime(body?: string): number {
+  if (!body) return 3;
+  return Math.max(1, Math.ceil(body.length / 500));
+}
+
+const readingTime = calcReadingTime(post.body);
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, '') : 'https://example.com';
+const articleUrl = new URL(Astro.url.pathname, siteUrl).href;
+
+// JSON-LD 構造化データ
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      '@id': `${articleUrl}#article`,
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        name: 'ガジェット比較ラボ',
+        url: siteUrl,
+      },
+      headline: post.data.title,
+      description: post.data.description,
+      datePublished: post.data.pubDate.toISOString(),
+      dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+      mainEntityOfPage: articleUrl,
+      keywords: post.data.tags.join(', '),
+      author: {
+        '@type': 'Organization',
+        name: 'ガジェット比較ラボ 編集部',
+        url: `${siteUrl}/about/`,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'ガジェット比較ラボ',
+        url: siteUrl,
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${articleUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'ホーム',
+          item: `${siteUrl}/`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: primaryTag,
+          item: `${siteUrl}/tags/${encodeURIComponent(primaryTag)}/`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: post.data.title,
+          item: articleUrl,
+        },
+      ],
+    },
+  ],
+};
 ---
-<BaseLayout title={post.data.title} description={post.data.description} ogType="article">
-  <article>
-    <h1>{post.data.title}</h1>
-    <p class="meta">
-      <time datetime={post.data.pubDate.toISOString()}>
-        {post.data.pubDate.toLocaleDateString('ja-JP')}
-      </time>
-      {post.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
-    </p>
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  ogType="article"
+  publishedDate={post.data.pubDate}
+  updatedDate={post.data.updatedDate}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+
+  <article class="article-container">
+    <!-- Breadcrumb Navigation -->
+    <nav class="breadcrumb" aria-label="パンくずリスト">
+      <a href="/">ホーム</a>
+      <span class="separator">/</span>
+      <a href={`/tags/${encodeURIComponent(primaryTag)}/`}>{primaryTag}</a>
+      <span class="separator">/</span>
+      <span class="current" title={post.data.title}>{post.data.title}</span>
+    </nav>
+
+    <!-- Article Header -->
+    <header class="article-header">
+      <div class="header-tags">
+        {post.data.tags.map((tag) => (
+          <a href={`/tags/${encodeURIComponent(tag)}/`} class="badge-pill">
+            #{tag}
+          </a>
+        ))}
+      </div>
+
+      <h1 class="article-title">{post.data.title}</h1>
+
+      <div class="article-meta">
+        <div class="meta-item">
+          <span class="meta-icon">📅</span>
+          <time datetime={post.data.pubDate.toISOString()}>
+            公開: {post.data.pubDate.toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </time>
+        </div>
+        {post.data.updatedDate && (
+          <div class="meta-item">
+            <span class="meta-icon">🔄</span>
+            <time datetime={post.data.updatedDate.toISOString()}>
+              更新: {post.data.updatedDate.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          </div>
+        )}
+        <div class="meta-item">
+          <span class="meta-icon">⏱️</span>
+          <span>読了目安: 約{readingTime}分</span>
+        </div>
+      </div>
+
+      <p class="article-lead">{post.data.description}</p>
+    </header>
+
     <AdSlot />
-    <div class="content">
+
+    <!-- Article Markdown Content -->
+    <div class="markdown-content">
       <Content />
     </div>
+
     <AdSlot />
+
+    <!-- Related Articles -->
     {relatedPosts.length > 0 && (
-      <nav class="related" aria-label="関連記事">
-        <h2>関連記事</h2>
-        <ul>
+      <section class="related-section" aria-label="関連記事">
+        <h2 class="related-title">関連記事</h2>
+        <div class="related-grid">
           {relatedPosts.map((p) => (
-            <li><a href={`/posts/${p.slug}/`}>{p.data.title}</a></li>
+            <a href={`/posts/${p.slug}/`} class="card related-card">
+              <span class="related-tag">#{p.data.tags[0]}</span>
+              <h3 class="related-card-title">{p.data.title}</h3>
+              <span class="related-date">
+                {p.data.pubDate.toLocaleDateString('ja-JP')}
+              </span>
+            </a>
           ))}
-        </ul>
-      </nav>
+        </div>
+      </section>
     )}
-    <p class="disclosure">
-      本記事はアフィリエイトプログラムにより収益を得る場合があります。
-    </p>
+
+    <!-- Legal & Affiliate Disclosure -->
+    <footer class="article-footer">
+      <div class="disclosure-box">
+        <p class="disclosure-title">掲載情報およびアフィリエイトに関するご案内</p>
+        <p class="disclosure-text">
+          当サイトは、各サービスの公式情報および比較検証に基づいて客観的な記事作成を行っております。記事内で紹介している商品・サービスへのリンクには、アフィリエイトプログラム（Amazonアソシエイト等）による紹介リンクが含まれる場合があります。リンク経由で商品を購入された場合でも、読者様に追加の費用が発生することは一切ございません。
+        </p>
+      </div>
+    </footer>
   </article>
 </BaseLayout>
+
 <style>
-  .meta { color: #888; font-size: 0.9rem; }
-  .tag { margin-left: 0.5rem; }
-  .content :global(h2) { margin-top: 2rem; }
-  .content :global(table) { width: 100%; border-collapse: collapse; }
-  .content :global(th), .content :global(td) {
-    border: 1px solid #8883; padding: 0.5rem; text-align: left;
+  .article-container {
+    max-width: 100%;
   }
-  .disclosure { font-size: 0.8rem; color: #999; margin-top: 2rem; }
-  .related { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #8883; }
-  .related h2 { font-size: 1.1rem; }
-  .related ul { padding-left: 1.25rem; }
-  .related li { margin-bottom: 0.4rem; }
+
+  .breadcrumb {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb a {
+    color: var(--fg-secondary);
+  }
+
+  .breadcrumb .separator {
+    color: var(--fg-muted);
+  }
+
+  .breadcrumb .current {
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--fg-muted);
+  }
+
+  .article-header {
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+  }
+
+  .header-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .article-title {
+    font-size: 2rem;
+    line-height: 1.4;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.25rem;
+  }
+
+  .article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .article-lead {
+    font-size: 1.05rem;
+    color: var(--fg-secondary);
+    line-height: 1.7;
+    background: rgba(59, 130, 246, 0.05);
+    border-left: 3px solid var(--accent-start);
+    padding: 1rem 1.25rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  /* Markdown Content Styling */
+  .markdown-content {
+    font-size: 1.05rem;
+    line-height: 1.85;
+    color: var(--fg);
+  }
+
+  .markdown-content :global(h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
+    position: relative;
+  }
+
+  .markdown-content :global(h2::before) {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+  }
+
+  .markdown-content :global(h3) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .markdown-content :global(p) {
+    margin-bottom: 1.4rem;
+  }
+
+  .markdown-content :global(ul),
+  .markdown-content :global(ol) {
+    margin-bottom: 1.4rem;
+    padding-left: 1.5rem;
+  }
+
+  .markdown-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .markdown-content :global(blockquote) {
+    border-left: 4px solid var(--accent-start);
+    background: rgba(59, 130, 246, 0.05);
+    padding: 0.85rem 1.25rem;
+    margin: 1.5rem 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--fg-secondary);
+  }
+
+  /* Responsive Comparison Tables */
+  .markdown-content :global(table) {
+    width: 100%;
+    margin: 2rem 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    font-size: 0.95rem;
+  }
+
+  .markdown-content :global(th) {
+    background: var(--bg-elevated);
+    color: var(--fg);
+    font-weight: 700;
+    padding: 0.85rem 1rem;
+    border-bottom: 2px solid var(--border);
+    text-align: left;
+  }
+
+  .markdown-content :global(td) {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg-secondary);
+  }
+
+  .markdown-content :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
+  .markdown-content :global(tbody tr:hover) {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  @media (prefers-color-scheme: light) {
+    .markdown-content :global(tbody tr:hover) {
+      background: rgba(0, 0, 0, 0.02);
+    }
+  }
+
+  /* Related Section */
+  .related-section {
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .related-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .related-card {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .related-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-start);
+  }
+
+  .related-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+    transition: color 0.2s ease;
+  }
+
+  .related-card:hover .related-card-title {
+    color: var(--accent-start);
+  }
+
+  .related-date {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+  }
+
+  /* Disclosure Footer */
+  .article-footer {
+    margin-top: 3rem;
+  }
+
+  .disclosure-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+    line-height: 1.6;
+  }
+
+  .disclosure-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--fg-secondary);
+  }
+
+  @media (max-width: 640px) {
+    .article-title {
+      font-size: 1.6rem;
+    }
+    .markdown-content {
+      font-size: 1rem;
+    }
+  }
 </style>

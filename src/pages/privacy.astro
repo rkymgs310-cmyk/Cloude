@@ -1,34 +1,123 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
-<BaseLayout title="プライバシーポリシー" description="ガジェット比較ラボのプライバシーポリシーです。">
-  <h1>プライバシーポリシー</h1>
+<BaseLayout
+  title="プライバシーポリシー"
+  description="ガジェット比較ラボのプライバシーポリシーです。Cookieの利用、広告配信、アクセス解析および免責事項について定めています。"
+>
+  <nav class="breadcrumb" aria-label="パンくずリスト">
+    <a href="/">ホーム</a>
+    <span class="separator">/</span>
+    <span class="current">プライバシーポリシー</span>
+  </nav>
 
-  <h2>広告について</h2>
-  <p>
-    当サイトはGoogleを含む第三者配信の広告サービス（Google AdSense等）を利用しています。
-    このような広告配信事業者は、ユーザーの興味に応じた広告を表示するためにCookieを使用することがあります。
-    Cookieを無効にする方法や詳細については
-    <a href="https://policies.google.com/technologies/ads?hl=ja" target="_blank" rel="noopener">Googleのポリシーと規約</a>
-    をご確認ください。
-  </p>
+  <article class="page-container">
+    <header class="page-header">
+      <h1 class="page-title">プライバシーポリシー</h1>
+      <p class="page-lead">
+        当サイト（ガジェット比較ラボ）における個人情報の保護および広告・アクセス解析等の取り扱いについて以下のとおり定めます。
+      </p>
+    </header>
 
-  <h2>アフィリエイトプログラムについて</h2>
-  <p>
-    当サイトは、Amazon.co.jpを宣伝しリンクすることによってサイトが紹介料を獲得できる手段を提供することを目的に設定された
-    アフィリエイトプログラムである、Amazonアソシエイト・プログラムの参加者です。
-  </p>
+    <div class="policy-sections">
+      <section class="card policy-card">
+        <h2 class="policy-heading">1. 広告配信について</h2>
+        <p>
+          当サイトはGoogleを含む第三者配信の広告サービス（Google AdSense等）を利用しています。広告配信事業者は、ユーザーの興味に応じた商品やサービスの広告を表示するため、当サイトや他サイトへのアクセスに関する情報「Cookie」（氏名、住所、メールアドレス、電話番号は含まれません）を使用することがあります。
+        </p>
+        <p>
+          Cookieを無効にする設定およびGoogle AdSenseに関する詳細は、
+          <a href="https://policies.google.com/technologies/ads?hl=ja" target="_blank" rel="noopener">Googleのポリシーと規約</a>
+          をご確認ください。
+        </p>
+      </section>
 
-  <h2>アクセス解析ツールについて</h2>
-  <p>
-    当サイトはアクセス解析のためにGoogle Analytics等のツールを使用する場合があります。
-    これらのツールはCookieを使用してデータを収集しますが、個人を特定する情報は含まれません。
-  </p>
+      <section class="card policy-card">
+        <h2 class="policy-heading">2. アフィリエイトプログラムについて</h2>
+        <p>
+          当サイトは、Amazon.co.jpを宣伝しリンクすることによってサイトが紹介料を獲得できる手段を提供することを目的に設定されたアフィリエイトプログラムである、Amazonアソシエイト・プログラムの参加者です。
+        </p>
+        <p>
+          第三者（Amazonや他の広告配信事業者）がコンテンツおよび宣伝を提供し、訪問者から直接情報を収集し、訪問者のブラウザにCookieを設定したりこれを認識したりする場合があります。
+        </p>
+      </section>
 
-  <h2>免責事項</h2>
-  <p>
-    当サイトのコンテンツ・情報について、できる限り正確な情報を掲載するよう努めていますが、
-    誤情報が入り込んだり、情報が古くなっていることもございます。
-    当サイトに掲載された内容によって生じた損害等の一切の責任を負いかねますのでご了承ください。
-  </p>
+      <section class="card policy-card">
+        <h2 class="policy-heading">3. アクセス解析ツールについて</h2>
+        <p>
+          当サイトでは、サイトの利用状況を把握しコンテンツ改善に役立てるため、Googleによるアクセス解析ツール「Googleアナリティクス」等を利用する場合があります。このツールはトラフィックデータの収集のためにCookieを使用しています。トラフィックデータは匿名で収集されており、個人を特定するものではありません。
+        </p>
+      </section>
+
+      <section class="card policy-card">
+        <h2 class="policy-heading">4. 免責事項</h2>
+        <p>
+          当サイトに掲載されている情報の正確性には万全を期していますが、利用者が当サイトの情報を用いて行う一切の行為について、何ら責任を負うものではありません。また、各製品・サービスの仕様や価格等は予告なく変更される場合がありますので、必ず提供元の最新情報をご確認ください。
+        </p>
+      </section>
+    </div>
+  </article>
 </BaseLayout>
+
+<style>
+  .breadcrumb {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--fg-secondary);
+  }
+
+  .breadcrumb .separator {
+    color: var(--fg-muted);
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .page-lead {
+    font-size: 1.05rem;
+    color: var(--fg-secondary);
+    line-height: 1.7;
+  }
+
+  .policy-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .policy-card {
+    padding: 1.75rem;
+  }
+
+  .policy-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.85rem;
+    color: var(--fg);
+  }
+
+  .policy-card p {
+    color: var(--fg-secondary);
+    line-height: 1.8;
+    margin-bottom: 0.85rem;
+  }
+
+  .policy-card p:last-child {
+    margin-bottom: 0;
+  }
+</style>

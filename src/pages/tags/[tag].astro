@@ -1,0 +1,213 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  const tags = [...new Set(posts.flatMap((p) => p.data.tags))];
+
+  return tags.map((tag) => {
+    const filteredPosts = posts
+      .filter((p) => p.data.tags.includes(tag))
+      .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+    return {
+      params: { tag },
+      props: { tag, posts: filteredPosts },
+    };
+  });
+}
+
+interface Props {
+  tag: string;
+  posts: CollectionEntry<'posts'>[];
+}
+
+const { tag, posts } = Astro.props;
+
+function calcReadingTime(body?: string): number {
+  if (!body) return 3;
+  return Math.max(1, Math.ceil(body.length / 500));
+}
+---
+<BaseLayout
+  title={`「${tag}」に関する記事一覧`}
+  description={`ガジェット比較ラボの「${tag}」に関する徹底比較・レビュー記事一覧（全${posts.length}件）。選び方のポイントやスペック比較をお届けします。`}
+>
+  <nav class="breadcrumb" aria-label="パンくずリスト">
+    <a href="/">ホーム</a>
+    <span class="separator">/</span>
+    <a href="/tags/">タグ一覧</a>
+    <span class="separator">/</span>
+    <span class="current">#{tag}</span>
+  </nav>
+
+  <header class="page-header">
+    <div class="tag-badge">#{tag}</div>
+    <h1 class="page-title">「{tag}」の記事一覧</h1>
+    <p class="page-desc">全 {posts.length} 件の記事が見つかりました。</p>
+  </header>
+
+  <div class="posts-grid">
+    {posts.map((post) => {
+      const readingTime = calcReadingTime(post.body);
+      return (
+        <article class="card post-card">
+          <a href={`/posts/${post.slug}/`} class="post-card-link">
+            <div class="post-card-header">
+              <div class="post-tags">
+                {post.data.tags.map((t) => (
+                  <span class="post-tag">#{t}</span>
+                ))}
+              </div>
+              <span class="reading-time">読了目安: 約{readingTime}分</span>
+            </div>
+
+            <h2 class="post-title">{post.data.title}</h2>
+            <p class="post-excerpt">{post.data.description}</p>
+
+            <div class="post-meta">
+              <time datetime={post.data.pubDate.toISOString()}>
+                {post.data.pubDate.toLocaleDateString('ja-JP', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </time>
+              <span class="read-more">記事を読む →</span>
+            </div>
+          </a>
+        </article>
+      );
+    })}
+  </div>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb a {
+    color: var(--fg-secondary);
+  }
+
+  .breadcrumb .separator {
+    color: var(--fg-muted);
+  }
+
+  .page-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .tag-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-start);
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    margin-bottom: 0.75rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .page-desc {
+    color: var(--fg-secondary);
+    font-size: 0.95rem;
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .post-card {
+    padding: 1.5rem;
+  }
+
+  .post-card-link {
+    display: block;
+    color: inherit;
+  }
+
+  .post-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .post-tag {
+    font-size: 0.75rem;
+    color: var(--accent-start);
+    font-weight: 600;
+  }
+
+  .reading-time {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+  }
+
+  .post-title {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: color 0.2s ease;
+  }
+
+  .post-card:hover .post-title {
+    color: var(--accent-start);
+  }
+
+  .post-excerpt {
+    color: var(--fg-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  .post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 0.85rem;
+  }
+
+  .read-more {
+    color: var(--accent-start);
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+  }
+
+  .post-card:hover .read-more {
+    transform: translateX(3px);
+  }
+</style>

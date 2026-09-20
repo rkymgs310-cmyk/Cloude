@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   slugify,
   dedupeSlug,
@@ -259,3 +261,44 @@ describe('validateArticle', () => {
     assert.throws(() => validateArticle(copy), /比較表\(Markdownテーブル\)が含まれていません/);
   });
 });
+
+describe('topics.json integrity', () => {
+  it('loads topics.json and verifies structure and uniqueness', async () => {
+    const raw = await readFile(path.resolve('data/topics.json'), 'utf-8');
+    const topics = JSON.parse(raw);
+    assert.ok(Array.isArray(topics), 'topics must be an array');
+    assert.ok(topics.length >= 20, 'topics queue should have a solid backlog');
+
+    const seenKeywords = new Set();
+    const seenSlugs = new Set();
+
+    for (const [index, item] of topics.entries()) {
+      assert.ok(
+        item.keyword && typeof item.keyword === 'string' && item.keyword.trim().length > 0,
+        `Topic at index ${index} must have a non-empty keyword`
+      );
+      assert.ok(
+        Array.isArray(item.tags) && item.tags.length > 0,
+        `Topic "${item.keyword}" must have a non-empty tags array`
+      );
+      for (const tag of item.tags) {
+        assert.ok(
+          typeof tag === 'string' && tag.trim().length > 0,
+          `Tag in "${item.keyword}" must be non-empty string`
+        );
+      }
+      assert.ok(!seenKeywords.has(item.keyword), `Duplicate keyword detected: "${item.keyword}"`);
+      seenKeywords.add(item.keyword);
+
+      if (item.done) {
+        assert.ok(
+          item.slug && typeof item.slug === 'string' && item.slug.trim().length > 0,
+          `Completed topic "${item.keyword}" must have a slug`
+        );
+        assert.ok(!seenSlugs.has(item.slug), `Duplicate slug detected in done items: "${item.slug}"`);
+        seenSlugs.add(item.slug);
+      }
+    }
+  });
+});
+
