@@ -4,3 +4,7 @@ dist/
 .env
 .DS_Store
 npm-debug.log*
+.env.*
+!.env.example
+.private-drafts/
+*.review.json

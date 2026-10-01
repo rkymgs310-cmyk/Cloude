@@ -1,14 +1,156 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
-<BaseLayout title="運営者情報" description="ガジェット比較ラボの運営者情報です。">
-  <h1>運営者情報</h1>
-  <p>
-    当サイト「ガジェット比較ラボ」は、AIツール・スマート家電・便利ガジェットの
-    比較レビュー情報を発信しています。
-  </p>
-  <p>
-    運営者: <!-- TODO: 氏名またはサイト名義を記入 --><br />
-    連絡先: <a href="/contact/">お問い合わせページ</a>よりご連絡ください。
-  </p>
+<BaseLayout
+  title="運営者情報"
+  description="ガジェット比較ラボの運営方針・検証基準・編集部情報についてご案内します。"
+>
+  <nav class="breadcrumb" aria-label="パンくずリスト">
+    <a href="/">ホーム</a>
+    <span class="separator">/</span>
+    <span class="current">運営者情報</span>
+  </nav>
+
+  <article class="page-container">
+    <header class="page-header">
+      <h1 class="page-title">運営者情報・編集方針</h1>
+      <p class="page-lead">
+        「ガジェット比較ラボ」は、日々の生産性向上やスマートホーム化を支援するガジェット＆AIツールの専門メディアです。
+      </p>
+    </header>
+
+    <section class="card section-card">
+      <h2 class="section-title">当サイトのミッション</h2>
+      <p>
+        急速に進化するAIサービスやスマート家電の中から、本当に実用価値の高いツールを客観的なスペック比較・選び方の観点からわかりやすく整理し、読者の皆様が納得して選べる情報を提供することを目指しています。
+      </p>
+    </section>
+
+    <section class="card section-card">
+      <h2 class="section-title">運営概要</h2>
+      <dl class="info-list">
+        <div class="info-row">
+          <dt>サイト名</dt>
+          <dd>ガジェット比較ラボ</dd>
+        </div>
+        <div class="info-row">
+          <dt>サイトURL</dt>
+          <dd>https://gadget-hikaku-lab.pages.dev（または独自ドメイン）</dd>
+        </div>
+        <div class="info-row">
+          <dt>運営責任者</dt>
+          <dd>ガジェット比較ラボ 編集部<!-- TODO: 氏名または法人名義に変更可能 --></dd>
+        </div>
+        <div class="info-row">
+          <dt>お問い合わせ</dt>
+          <dd><a href="/contact/">お問い合わせフォーム・連絡先</a></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="card section-card">
+      <h2 class="section-title">記事作成および比較検証ポリシー</h2>
+      <ul>
+        <li>各ツールの公式サイト、一次情報、公開仕様書に基づいた正確なデータ記載を徹底します。</li>
+        <li>メリットだけでなく、導入時の注意点・デメリットも公平に明記します。</li>
+        <li>アフィリエイトリンクによる収益化を行っていますが、紹介順位や評価が広告料によって歪められることはありません。</li>
+      </ul>
+    </section>
+  </article>
 </BaseLayout>
+
+<style>
+  .breadcrumb {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--fg-secondary);
+  }
+
+  .breadcrumb .separator {
+    color: var(--fg-muted);
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .page-lead {
+    font-size: 1.05rem;
+    color: var(--fg-secondary);
+    line-height: 1.7;
+  }
+
+  .section-card {
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--fg);
+  }
+
+  .section-card p, .section-card li {
+    color: var(--fg-secondary);
+    line-height: 1.75;
+  }
+
+  .section-card ul {
+    padding-left: 1.25rem;
+  }
+
+  .section-card li {
+    margin-bottom: 0.5rem;
+  }
+
+  .info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .info-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .info-row dt {
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  .info-row dd {
+    color: var(--fg);
+  }
+
+  @media (max-width: 600px) {
+    .info-row {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+</style>

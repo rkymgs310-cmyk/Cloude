@@ -1,13 +1,116 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
-<BaseLayout title="お問い合わせ" description="ガジェット比較ラボへのお問い合わせページです。">
-  <h1>お問い合わせ</h1>
-  <p>
-    当サイトへのご質問・ご指摘は下記メールアドレスまでご連絡ください。
-  </p>
-  <p>
-    <!-- TODO: 実際の連絡先メールアドレスに差し替えてください -->
-    メール: contact@example.com
-  </p>
+<BaseLayout
+  title="お問い合わせ"
+  description="ガジェット比較ラボへのお問い合わせ・ご指摘・情報提供はこちらのページから承ります。"
+>
+  <nav class="breadcrumb" aria-label="パンくずリスト">
+    <a href="/">ホーム</a>
+    <span class="separator">/</span>
+    <span class="current">お問い合わせ</span>
+  </nav>
+
+  <article class="page-container">
+    <header class="page-header">
+      <h1 class="page-title">お問い合わせ</h1>
+      <p class="page-lead">
+        記事内容に関するご意見・誤りのご指摘、製品レビューや取材のご相談は下記連絡先よりお問い合わせください。
+      </p>
+    </header>
+
+    <div class="card contact-card">
+      <h2 class="card-title">メールでのお問い合わせ</h2>
+      <p class="contact-desc">
+        以下のメールアドレス宛にご連絡をお願いいたします。内容を確認次第、原則2〜3営業日以内にご返信いたします。
+      </p>
+      <div class="email-box">
+        <span class="email-icon">✉️</span>
+        <!-- TODO: 実際の運営用連絡先メールアドレスに差し替えてください -->
+        <a href="mailto:contact@example.com" class="email-link">contact@example.com</a>
+      </div>
+      <p class="contact-note">
+        ※ 掲載記事に関する修正依頼の場合は、対象記事のURLを併せて記載いただけますと幸いです。
+      </p>
+    </div>
+  </article>
 </BaseLayout>
+
+<style>
+  .breadcrumb {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--fg-secondary);
+  }
+
+  .breadcrumb .separator {
+    color: var(--fg-muted);
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .page-lead {
+    font-size: 1.05rem;
+    color: var(--fg-secondary);
+    line-height: 1.7;
+  }
+
+  .contact-card {
+    padding: 2rem;
+  }
+
+  .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .contact-desc {
+    color: var(--fg-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+  }
+
+  .email-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .email-icon {
+    font-size: 1.25rem;
+  }
+
+  .email-link {
+    color: var(--accent-start);
+  }
+
+  .contact-note {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    line-height: 1.6;
+  }
+</style>
