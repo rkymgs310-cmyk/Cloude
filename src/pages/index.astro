@@ -4,30 +4,282 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
 const posts = allPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+// サイト内の全タグを集計
+const allTags = [...new Set(posts.flatMap((p) => p.data.tags))];
+
+function calcReadingTime(body?: string): number {
+  if (!body) return 3;
+  return Math.max(1, Math.ceil(body.length / 500));
+}
 ---
 <BaseLayout
   title="ガジェット比較ラボ"
-  description="AIツール・スマート家電・便利ガジェットを比較レビューするブログです。"
+  description="AIツール・スマート家電・便利ガジェットのスペック比較・徹底レビュー。日々の生活やデスク環境をアップグレードする実用情報をお届けします。"
 >
-  <h1>ガジェット比較ラボ</h1>
-  <p>AIツールやスマート家電、便利グッズをスペック比較・レビューで紹介します。</p>
-  <ul class="post-list">
-    {posts.map((post) => (
-      <li>
-        <a href={`/posts/${post.slug}/`}>{post.data.title}</a>
-        <p class="excerpt">{post.data.description}</p>
-        <time datetime={post.data.pubDate.toISOString()}>
-          {post.data.pubDate.toLocaleDateString('ja-JP')}
-        </time>
-      </li>
-    ))}
-  </ul>
-  {posts.length === 0 && <p>準備中です。近日公開予定の記事にご期待ください。</p>}
+  <section class="hero-section">
+    <div class="hero-badge">
+      <span class="pulse-dot"></span>
+      AIツール & スマートガジェット比較メディア
+    </div>
+    <h1 class="hero-title">
+      暮らしと仕事を最適化する、<br />
+      <span class="gradient-text">賢いツールの選び方。</span>
+    </h1>
+    <p class="hero-subtitle">
+      AI自動化ツール、最新スマート家電、周辺機器をスペックと実用性の観点から徹底比較。失敗しない買い物をサポートします。
+    </p>
+
+    {allTags.length > 0 && (
+      <div class="quick-tags">
+        <span class="quick-tags-label">注目カテゴリー:</span>
+        <div class="tags-list">
+          {allTags.map((tag) => (
+            <a href={`/tags/${encodeURIComponent(tag)}/`} class="badge-pill">
+              #{tag}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </section>
+
+  <section class="posts-section">
+    <div class="section-header">
+      <h2 class="section-title">最新の記事</h2>
+      <span class="posts-count">全 {posts.length} 記事</span>
+    </div>
+
+    {posts.length > 0 ? (
+      <div class="posts-grid">
+        {posts.map((post) => {
+          const readingTime = calcReadingTime(post.body);
+          return (
+            <article class="card post-card">
+              <a href={`/posts/${post.slug}/`} class="post-card-link">
+                <div class="post-card-header">
+                  <div class="post-tags">
+                    {post.data.tags.map((tag) => (
+                      <span class="post-tag">#{tag}</span>
+                    ))}
+                  </div>
+                  <span class="reading-time">読了目安: 約{readingTime}分</span>
+                </div>
+
+                <h3 class="post-title">{post.data.title}</h3>
+                <p class="post-excerpt">{post.data.description}</p>
+
+                <div class="post-meta">
+                  <time datetime={post.data.pubDate.toISOString()}>
+                    {post.data.pubDate.toLocaleDateString('ja-JP', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </time>
+                  <span class="read-more">記事を読む →</span>
+                </div>
+              </a>
+            </article>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="empty-state card">
+        <p>準備中です。近日公開予定の記事にご期待ください。</p>
+      </div>
+    )}
+  </section>
 </BaseLayout>
+
 <style>
-  .post-list { list-style: none; padding: 0; }
-  .post-list li { margin-bottom: 1.75rem; padding-bottom: 1.75rem; border-bottom: 1px solid #8883; }
-  .post-list a { font-size: 1.15rem; font-weight: 700; text-decoration: none; }
-  .excerpt { color: #666; margin: 0.4rem 0; }
-  time { font-size: 0.85rem; color: #888; }
+  .hero-section {
+    padding: 1.5rem 0 3rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-start);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    margin-bottom: 1.5rem;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+    line-height: 1.35;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    max-width: 620px;
+    margin: 0 auto 2rem;
+    color: var(--fg-secondary);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .quick-tags {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .quick-tags-label {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+  }
+
+  .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .posts-count {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .post-card {
+    padding: 1.5rem;
+  }
+
+  .post-card-link {
+    display: block;
+    color: inherit;
+  }
+
+  .post-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .post-tag {
+    font-size: 0.75rem;
+    color: var(--accent-start);
+    font-weight: 600;
+  }
+
+  .reading-time {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+  }
+
+  .post-title {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: color 0.2s ease;
+  }
+
+  .post-card:hover .post-title {
+    color: var(--accent-start);
+  }
+
+  .post-excerpt {
+    color: var(--fg-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  .post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 0.85rem;
+  }
+
+  .read-more {
+    color: var(--accent-start);
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+  }
+
+  .post-card:hover .read-more {
+    transform: translateX(3px);
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--fg-muted);
+  }
+
+  @media (max-width: 640px) {
+    .hero-title {
+      font-size: 1.7rem;
+    }
+    .hero-subtitle {
+      font-size: 0.95rem;
+    }
+    .post-card {
+      padding: 1.2rem;
+    }
+    .post-title {
+      font-size: 1.1rem;
+    }
+  }
 </style>

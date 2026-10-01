@@ -9,7 +9,10 @@ const posts = defineCollection({
     updatedDate: z.coerce.date().optional(),
     keyword: z.string(),
     tags: z.array(z.string()).default([]),
-    draft: z.boolean().default(false),
+    draft: z.boolean().default(true),
+    reviewStatus: z.enum(['needs_review', 'approved']).optional(),
+  }).refine((data) => data.reviewStatus !== 'needs_review' || data.draft, {
+    message: '確認待ちの記事は draft: false にできません。',
   }),
 });
 

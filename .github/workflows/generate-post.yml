@@ -1,43 +1,42 @@
-name: Generate daily post
+name: Daily pipeline checks (review-first)
 
 on:
   schedule:
-    # 毎日 21:00 JST (12:00 UTC) に実行
+    # 毎日 21:00 JST (12:00 UTC)。時刻は維持し、公開CIではQAのみ実行。
     - cron: "0 12 * * *"
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  generate:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        with:
+          persist-credentials: false
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate post
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: npm run generate:post
-
-      - name: Commit and push if there are changes
+      - name: Run offline tests
+        run: npm test
+      - name: Build site
+        run: npm run build
+      - name: Verify draft exclusion
+        run: npm run test:build-safety
+      - name: Explain review gate
+        if: always()
         run: |
-          git config user.name "gadget-lab-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/topics.json src/content/posts
-          if git diff --cached --quiet; then
-            echo "No new post generated."
-          else
-            git commit -m "chore: add auto-generated post"
-            git push
-          fi
+          {
+            echo "### Review-first: generation is local-only"
+            echo "This public repository runs offline QA only, with no API credentials."
+            echo "Draft generation and storage require an approved private local environment."
+            echo "No generated content is committed, uploaded, or published by this workflow."
+            echo "See README.md for the separate review and publication gates."
+          } >> "$GITHUB_STEP_SUMMARY"
